@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YourProfile</title>
+    <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+    <nav class="profile-nav">
+        <div class="nav-left-buttons">
+            <button class="nav-button" onclick="goBack()">Back to Dashboard</button>
+            <button class="nav-button" onclick="logout()">Logout</button>
+        </div>
+        <div class="nav-right-buttons">
+            <button class="nav-button room-action-button" onclick="updateUserProfile()">Update Profile</button>
+        </div>
+    </nav>
+    
+    <div class="profile-container">
+        <h1 class="profile-title">Your Profile</h1>
+        <div class="profile-details">
+            <h3 id="username" class="profile-username">Username</h3>
+            <p class="profile-info">More data about the user to display here</p>
+        </div>
+    </div>
+
+</body>
+
+<script>
+    const username = sessionStorage.getItem('username');
+    document.getElementById('username').textContent = 'Hello,' + username;
+
+
+    function goBack(){
+        window.location.href = '/dashboard'; // Redirect to the dashboard.html page
+    }
+    function updateUserProfile(){
+        window.location.href = '/updateUser'; // Redirect to the updateUser.html page
+    }
+
+    function logout() {
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('userID');
+        sessionStorage.removeItem('username');
+        window.location.href = '/login?message=loggedOut';
+    }
+
+    function checkAuthentication() {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+        window.location.href = '/login?message=loggedOut';
+        }
+  }
+
+    // Check authentication and load rooms when the page is first loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        checkAuthentication();
+    });
+
+    // Check authentication when navigating back to the page
+    window.addEventListener('pageshow', checkAuthentication);
+</script>
+</html>

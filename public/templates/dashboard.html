@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rooms</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/public/css/style.css"> 
+</head>
+  <body>
+    <nav class="dashboard-nav">
+      <div class="nav-container">
+        <button onclick="logout()">Logout</button>
+        <button onclick="goToProfile()">Your Profile</button>
+        <h3 id="username"></h3>
+      </div>
+    </nav>
+    <main class="dashboard-main">
+      <div id="room-selection" class="room-selection">
+        <h2>Create or Join a Room</h2>
+        <div class="join-room">
+          <h3>Join a Room</h3>
+          <ul id="rooms"></ul>
+        </div>
+        <div class="create-room">
+          <h3>Create a Room</h3>
+          <input id="newRoomName" placeholder="Room Name" />
+          <button onclick="createRoom()">Create Room</button>
+        </div>
+      </div>
+    </main>
+</body>
+
+<script defer src="/public/js/dashboardScript.js"></script>
+<script>
+  const username = sessionStorage.getItem('username'); 
+  document.getElementById('username').textContent = 'Hello, ' + username;
+
+  function goToProfile() {
+    window.location.href = '/profile';
+  }
+
+  function logout() {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('userID');
+    sessionStorage.removeItem('username');
+    window.location.href = '/login?message=loggedOut';
+  }
+
+  // function checkAuthentication() {
+  //   const token = sessionStorage.getItem('token');
+  //   if (!token) {
+  //     window.location.href = '/login?message=loggedOut';
+  //   }
+  // }
+
+  // // Check authentication and load rooms when the page is first loaded
+  // document.addEventListener('DOMContentLoaded', () => {
+  //   checkAuthentication();
+  //   loadRooms();
+  // });
+
+  // // Check authentication when navigating back to the page
+  // window.addEventListener('pageshow', checkAuthentication);
+</script>
+</html>
