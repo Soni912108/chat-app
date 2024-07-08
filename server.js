@@ -202,3 +202,6 @@ io.on('connection', (socket) => {
     console.log('user disconnected');
   });
 });
+
+
+module.exports = app;
