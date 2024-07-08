@@ -1,9 +1,11 @@
+//routes/messages.js
+
 const express = require('express');
 const Message = require('../models/Messages');
-const auth = require('../middleware/auth');
 const router = express.Router();
 const mongoose = require('mongoose');
 const User = mongoose.model('User');
+const Notification = require('../models/Notification');
 
 module.exports = (app, redisClient) => {
   // Function to fetch messages from Redis (if available)
@@ -64,3 +66,5 @@ module.exports = (app, redisClient) => {
 
   app.use('/api/messages', router); // Mount routes
 };
+
+

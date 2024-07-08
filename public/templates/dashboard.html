@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/public/css/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="public/js/dashboardScript.mjs"></script>
+  <script defer src="/public/js/navbar.js"></script> 
+  <script defer src="/public/js/notificationCount.js"></script>
+</head>
+<style>
+    #notification-count {
+      background-color: red;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 5px;
+      margin-left: 5px;
+      display: none; /* Hide initially */
+    }
+
+    .notification-animation {
+      animation: blink 1s ease-in-out;
+    }
+
+    @keyframes blink {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0;
+      }
+    }
+</style>
+<body>
+  <nav class="dashboard-nav">
+    <div class="dashboard-nav-container left">
+      <button class="logout-button" onclick="logout()" id="logout">Logout</button>
+      <button onclick="goToProfile()" id="profile">Your Profile</button>
+      <button onclick="gotoNotification()" id="notification">Notification<span id="notification-count"></span></button>
+    </div>
+    <div class="dashboard-nav-container right">
+      <h3 class="dashboard-username" id="username"></h3>
+    </div>
+  </nav>
+
+  <p class="connection-error" id="connection-error"></p>
+
+  <main class="dashboard-main">
+    <p class="dashboard-error" id="error"></p>
+    <div id="room-selection" class="room-selection">
+      <h2>Create or Join a Room</h2>
+      <div class="join-room">
+        <h3>Join a Room</h3>
+        <ul id="rooms"></ul>
+      </div>
+      <div class="create-room">
+        <h3>Create a Room</h3>
+        <input id="newRoomName" placeholder="Room Name" />
+
+        <label for="privacy">Privacy</label>
+        <select name="add-privacy" id="privacy">
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+        </select>
+
+        <label for="add-users">Ask Users to join Room</label>
+        <input type="text" id="add-users" placeholder="User IDs separated by commas" />
+
+        <button id="createRoomButton">Create Room</button>
+      </div>
+    </div>
+  </main>
+ 
+</body>
+</html>
+

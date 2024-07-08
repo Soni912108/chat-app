@@ -1,0 +1,79 @@
+
+//public/js/clientAuth.js
+
+function login() {
+  //you can change this to email or password instead of username/password
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const errorMessageDiv = document.getElementById('errorMessage');
+  
+  fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  })
+  .then(response => {
+      if (!response.ok) {
+        return response.json().then(error => {
+          throw new Error(error.message);
+        });
+      }
+      return response.json();
+  })
+  .then(data => {
+    if (data.token && data.userID && data.userName) {
+      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('userID', data.userID);
+      sessionStorage.setItem('username', data.userName);
+
+      window.location.href = '/dashboard'; // Redirect to the dashboard.html page
+    } else {
+      throw new Error('Invalid response format');
+    }
+  })
+  .catch(error => {
+    errorMessageDiv.textContent = error.message;
+    errorMessageDiv.style.display = 'block';
+  });
+}
+
+  
+
+
+function register() {
+    const email = document.getElementById('email').value;
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorMessageDiv = document.getElementById('errorMessage');
+
+    fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email,username, password }),
+    })
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(error => {
+          throw new Error(error.message);
+      });
+    }
+    return response.json();
+  })
+    .then(data => {
+      if (data.token && data.userID && data.userName) {
+          sessionStorage.setItem('token', data.token);
+          sessionStorage.setItem('userID', data.userID);
+          sessionStorage.setItem('username', data.userName);
+          
+          window.location.href = '/dashboard'; // Redirect to the dashboard.html page
+
+        } else {
+          throw new Error('Invalid response format');
+        }
+    })
+    .catch(error => {
+      errorMessageDiv.textContent = error.message;
+      errorMessageDiv.style.display = 'block';
+    });
+  }
+  
