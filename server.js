@@ -36,7 +36,9 @@ app.use(cors({
 app.options('*', cors()); // Enable pre-flight for all routes
 
 app.use(express.json());
-app.use('/public', express.static('public')); // Serve static files from the public directory
+
+// Serve static files from the public directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploads directory
 
 
