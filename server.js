@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const cors = require('cors'); // Import CORS middleware
 
 const Message = require('./models/Messages');
 const Room = require('./models/Rooms');
@@ -17,29 +18,28 @@ const notificationRoutes = require('./routes/notifications');
 
 //utils
 const notifyUsers = require('./utils/notificationFunction');
-
+//import socket
 const { io, server, app } = require('./socket');
-
+//load env variables
 require('dotenv').config();
-const cors = require('cors'); // Import CORS middleware
 
-
-const PORT = process.env.PORT || 3001;
 
 
 // Middleware
-app.use(cors({
-  methods: ['GET', 'POST','PUT','DELETE','PATCH'], // Specify allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'] // Specify allowed headers
-}));
+const corsOptions = {
+  origin: 'https://chat-app-gules-seven.vercel.app/', // Replace with your Vercel deployment URL
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true,
+};
 
-app.options('*', cors()); // Enable pre-flight for all routes
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
 // Serve static files from the public directory
 app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploads directory 
 
 
 
