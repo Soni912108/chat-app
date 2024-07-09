@@ -118,11 +118,14 @@ process.on('SIGINT', () => {
 // Connect to MongoDB
 connectToMongoDB();
 
-// // Server listen logic
-// server.listen(PORT, () => {
-//   console.info(`Server is running on port ${PORT}`);
-//   messagesRoutes(app, redisClient);
-// });
+
+const PORT = process.env.PORT;
+
+// Server listen logic
+server.listen(PORT, () => {
+  console.info(`Server is running on port ${PORT}`);
+  messagesRoutes(app, redisClient);
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
