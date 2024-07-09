@@ -26,14 +26,12 @@ require('dotenv').config();
 
 
 // Middleware
-const corsOptions = {
-  origin: 'https://chat-app-gules-seven.vercel.app/', // Replace with your Vercel deployment URL
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type','Authorization'],
-  credentials: true,
-};
+app.use(cors({
+  methods: ['GET', 'POST','PUT','DELETE','PATCH'], // Specify allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'] // Specify allowed headers
+}));
 
-app.use(cors(corsOptions));
+app.options('*', cors()); // Enable pre-flight for all routes
 
 app.use(express.json());
 
