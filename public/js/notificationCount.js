@@ -1,7 +1,5 @@
 // public/js/notificationCount.js
 
-
-
 const socket = io('https://chat-app-gules-seven.vercel.app/');
 
 let retryCount = 0;
