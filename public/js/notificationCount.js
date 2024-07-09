@@ -4,6 +4,10 @@ const socket = io('https://chat-app-gules-seven.vercel.app', {
   path: '/socket.io'
 });
 
+
+
+
+
 let retryCount = 0;
 const maxRetries = 5;
 let retryTimeout;
