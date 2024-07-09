@@ -1,4 +1,4 @@
-const socket = io('https://chat-app-gules-seven.vercel.app/');
+const socket = io();
 
 // Extract roomId from URL
 const urlParams = new URLSearchParams(window.location.search);
