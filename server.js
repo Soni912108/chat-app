@@ -119,13 +119,13 @@ connectToMongoDB();
 
 const PORT = process.env.PORT;
 
-messagesRoutes(app, redisClient);
 
-// // Server listen logic
-// server.listen(PORT, () => {
-//   console.info(`Server is running on port ${PORT}`);
-  
-// });
+
+// Server listen logic
+server.listen(PORT, () => {
+  console.info(`Server is running on port ${PORT}`);
+  messagesRoutes(app, redisClient);
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
