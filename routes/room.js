@@ -38,6 +38,7 @@ router.get('/:roomId', auth, async (req, res) => {
 });
 
 
+
 // Delete/ban a user from a specific room
 router.delete('/:roomId/:username', auth, async (req, res) => {
   const { roomId, username } = req.params;
@@ -48,14 +49,10 @@ router.delete('/:roomId/:username', auth, async (req, res) => {
       return res.status(404).json({ message: 'Room not found' });
     }
 
-    console.log(req.user.id.toString());
-    console.log(room.roomOwner._id.toString());
-
     // Check if the requester is the owner of the room
     const isOwner = req.user.id.toString() === room.roomOwner._id.toString();
-
     if (!isOwner) {
-      return res.status(403).json({ message: 'You are not the owner of this room.'});
+      return res.status(403).json({ message: 'You are not the owner of this room.' });
     }
 
     const userToRemove = room.users.find(user => user.username === username);
@@ -73,13 +70,14 @@ router.delete('/:roomId/:username', auth, async (req, res) => {
 
     // Notify the banned user
     io.to(userToRemove._id.toString()).emit('userBanned', 'You have been banned from the room. Redirecting to dashboard.');
-    
+
     res.status(200).json({ message: 'User banned and messages deleted successfully' });
   } catch (error) {
     console.error('Error banning user and deleting messages:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
 
 
 // Delete single room details and associated messages
