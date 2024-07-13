@@ -24,8 +24,7 @@ require('dotenv').config();
 const cors = require('cors'); // Import CORS middleware
 
 
-const PORT = process.env.PORT;
-
+const PORT = process.env.PORT; //is need to start the server
 
 // Middleware
 app.use(cors({
