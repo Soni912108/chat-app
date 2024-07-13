@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fetch Protected Resource Test</title>
+</head>
+<body>
+  <h1>Fetch Protected Resource Test</h1>
+  <button onclick="fetchDashboard()">Fetch Dashboard Data</button>
+  <script>
+
+function fetchProtectedResource(url) {
+  const token = sessionStorage.getItem('token');
+
+  fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      throw new Error('Authorization failed');
+    }
+    return response.json();
+  })
+  .then(data => {
+    console.log('Protected data:', data);
+  })
+  .catch(error => console.error('Error:', error));
+}
+
+    function fetchDashboard() {
+      const url = '/dashboard'; // Replace with the actual endpoint URL
+      fetchProtectedResource(url);
+    }
+
+    // Function to simulate sessionStorage.getItem
+    function mockSessionStorage() {
+      sessionStorage.getItem = function(key) {
+        if (key === 'token') {
+          return 'your_mocked_token_here'; // Replace with a valid token for testing
+        }
+        return null; // Handle other sessionStorage keys as needed
+      };
+    }
+
+    // Call mockSessionStorage to simulate sessionStorage behavior
+    mockSessionStorage();
+  </script>
+</body>
+</html>

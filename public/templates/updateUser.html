@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Change Password</title>
+  <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+  <nav class="update-nav">
+    <div class="nav-buttons">
+      <button class="nav-button cancel" onclick="goBackToProfile()">Cancel</button>
+    </div>
+  </nav>
+
+  <div class="update-container">
+      <div class="update-card">
+          <h1 class="update-title">Update your Avatar</h1>
+          <form id="avatar-upload-form" enctype="multipart/form-data">
+              <label for="avatar-input" class="custom-file-upload">Choose a file</label>
+              <input type="file" name="avatar" id="avatar-input" accept="image/*">
+              <button type="submit">Upload Avatar</button>
+          </form>
+      </div>
+  
+      <div class="update-card">
+          <h1 class="update-title">Change Password</h1>
+          <form id="changePasswordForm" class="update-form">
+              <div class="form-group">
+                  <label for="old-password">Old Password</label>
+                  <input type="password" name="old-password" id="old-password" required>
+              </div>
+              <div class="form-group">
+                  <label for="new-password">New Password</label>
+                  <input type="password" name="new-password" id="new-password" required>
+              </div>
+              <div class="form-group">
+                  <label for="repeat-password">Repeat New Password</label>
+                  <input type="password" name="repeat-password" id="repeat-password" required>
+              </div>
+              <div id="error-message" class="error-message"></div>
+              <button type="submit" class="update-button">Change Password</button>
+          </form>
+      </div>
+  </div>
+
+
+  <script>
+    //check if the user data is present on the sessionStorage
+    if (!sessionStorage.getItem('userId') && sessionStorage.getItem('token') == null) {
+      window.location.href = '/login';
+    }
+  </script>
+  <script defer src="/public/js/updateUser.js"></script>
+  <script defer src="/public/js/navbar.js"></script>
+</body>
+</html>
