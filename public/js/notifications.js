@@ -27,6 +27,7 @@ function displayNotifications(notifications) {
     if (notifications.length === 0) {
       const noNewNotificationsMessage = document.createElement('li');
       noNewNotificationsMessage.textContent = 'No new notifications.';
+      noNewNotificationsMessage.style.color = 'green';
       notificationsList.appendChild(noNewNotificationsMessage);
     }
 
@@ -34,39 +35,38 @@ function displayNotifications(notifications) {
       const listItem = document.createElement('li');
       listItem.textContent = notification.message;
     
-        // Handle room request notifications
-        if (notification.message.includes('wants to join your private room')) {
-          const acceptButton = document.createElement('button');
-          acceptButton.textContent = 'Accept Request';
-          acceptButton.addEventListener('click', async () => {
-            const response = await handleRoomRequestNotification(
-              notification.sender,
-              notification.roomId,
-              notification._id
-            );
-            console.log(response);
-            if (response.ok) { // Check for successful response (status 200)
-              acceptButton.style.display = 'none'; // Hide button on success
-              listItem.remove(); // Remove the entire notification list item
-            } else {
-              console.error('Error accepting room request:', response.statusText);
-              const msg = 'Error accepting room request'
-              displayError(msg)
-            }
-          });
+        // Only add the Accept Request button if the notification is unread
+          if (notification.message.includes('wants to join your private room') && notification.read === false) {
+            const acceptButton = document.createElement('button');
+            acceptButton.textContent = 'Accept Request';
+            acceptButton.addEventListener('click', async () => {
+              const success = await handleRoomRequestNotification(
+                notification.sender,
+                notification.roomId,
+                notification._id
+              );
+
+              if (success) { // Check for successful response
+                acceptButton.style.display = 'none'; // Hide button on success
+                listItem.remove();
+              } else {
+                console.error('Error accepting room request');
+                const msg = 'Error accepting room request. User might already be in the room list';
+                displayError(msg);
+              }
+            });
             listItem.appendChild(acceptButton);
-        }
-    
+          
+          notificationsList.appendChild(listItem);
+        };
       // Add event listener for marking the notification as read
       const markAsReadButton = document.createElement('button');
       markAsReadButton.textContent = notification.read ? 'Already Read' : 'Mark as Read';
       markAsReadButton.addEventListener('click', async () => {
         await markNotificationAsRead(notification._id);
         // Update the UI to reflect the read state (optional)
-        if (notification.read) {
-          markAsReadButton.textContent = 'Already Read';
-          listItem.style.fontWeight = 'normal';
-        }
+        markAsReadButton.textContent = 'Already Read';
+        listItem.style.color = 'green';
       });
       listItem.appendChild(markAsReadButton);
 
@@ -83,7 +83,7 @@ function displayNotifications(notifications) {
     });
   }
 
-async function markNotificationAsRead(notificationId) {
+  async function markNotificationAsRead(notificationId) {
     try {
       const response = await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'POST',
@@ -91,20 +91,18 @@ async function markNotificationAsRead(notificationId) {
           'Authorization': 'Bearer ' + sessionStorage.getItem('token'),
         },
       });
-
+  
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message);
       }
-
+  
       console.log('Notification marked as read successfully');
-      //reload the notification page
-      window.location.reload(); // Refresh the page to reflect the updated notifications
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
-  }
-
+}
+  
 async function deleteNotification(notificationId) {
     try {
       const response = await fetch(`/api/notifications/${notificationId}/delete`, {
@@ -130,26 +128,31 @@ async function deleteNotification(notificationId) {
 //function to add a button that would accept requests to join a room  
 //checking this type of notification form the text received from the server
 async function handleRoomRequestNotification(userId, roomId, notificationId) {
-    try {
-      const response = await fetch(`/api/rooms/${roomId}/${userId}/accept`, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + sessionStorage.getItem('token'),
-        },
-      });
-  
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-  
-      console.log('User added to the room successfully');
-      // Optionally, mark the notification as read or delete it after accepting the request
-      await markNotificationAsRead(notificationId);
-    } catch (error) {
-      console.error('Error accepting room request:', error);
+  try {
+    const response = await fetch(`/api/rooms/${roomId}/${userId}/accept`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + sessionStorage.getItem('token'),
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message);
     }
+
+    console.log('User added to the room successfully');
+    // Mark the notification as read after accepting the request
+    await markNotificationAsRead(notificationId);
+    return true; // Indicate success
+  } catch (error) {
+    console.error('Error accepting room request:', error);
+    return false; // Indicate failure
   }
+}
+
+
+
 
 
 function displayError(message) {
