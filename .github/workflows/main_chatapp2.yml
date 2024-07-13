@@ -59,8 +59,8 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [build, check-for-changes]
-    if: env.deploy == 'true'
+    needs: check-for-changes
+    if: needs.check-for-changes.outputs.deploy == 'true'
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
