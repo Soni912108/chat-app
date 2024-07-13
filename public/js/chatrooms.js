@@ -55,10 +55,11 @@ function fetchRoomDetails() {
     .catch(error => console.error('Error:', error));
 }
 
+
+
 // Function to display messages
 function displayMessages() {
-
-  if(!token){
+  if (!token) {
     sessionStorage.clear();
     window.location.href = '/login?message=loggedOut';
     return; // Exit the function if no token
@@ -83,9 +84,10 @@ function displayMessages() {
     .then(data => {
       const messages = document.getElementById('messages');
       messages.innerHTML = ''; // Clear existing messages before displaying new ones
-      
+
       if (data.messageTuples && data.messageTuples.length > 0) {
-        data.messageTuples.forEach(message => {
+        // Reverse the order of messages to display the latest message at the top
+        data.messageTuples.reverse().forEach(message => {
           const messageElement = document.createElement('li');
           messageElement.className = 'message';
 
@@ -109,9 +111,10 @@ function displayMessages() {
           messageElement.appendChild(avatar);
           messageElement.appendChild(messageContent);
 
-          messages.appendChild(messageElement);
-          scrollToBottom();
+          messages.prepend(messageElement); // Prepend the message to the container
         });
+
+        scrollToBottom();
       } else {
         const noMessagesElement = document.createElement('li');
         noMessagesElement.textContent = 'It\'s empty. Type something here...';
@@ -243,15 +246,12 @@ function showTroubleshootingTips() {
 
 // Handle new messages
 socket.on('message', (msg) => {
-
-  if(!token){
+  if (!token) {
     sessionStorage.clear();
     window.location.href = '/login?message=loggedOut';
     return; // Exit the function if no token
   }
-  //check if length of the rooms messages is increased
-  
-
+  // Check if length of the room's messages is increased
   const messages = document.getElementById('messages');
   const messageElement = document.createElement('li');
   messageElement.className = 'message';
@@ -367,6 +367,7 @@ async function deleteRoom() {
     console.error('Missing room ID or token');
     return;
   }
+
   try {
     const response = await fetch(`/api/rooms/${roomId}`, {
       method: 'DELETE',
@@ -417,27 +418,42 @@ function banUser(username) {
         'Authorization': 'Bearer ' + token,
       }
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.message) {
-        alert(`${username} has been banned from the room.`);
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(({ status, body }) => {
+      if (status === 200) {
+        alert(body.message);
         // Fetch updated messages after banning the user
         displayMessages();
         // Update the user list
         socket.emit('joinRoom', roomId);
+      } else if (status === 403) {
+        displayError(body.message);
+      } else if (status === 404) {
+        displayError(body.message);
       } else {
-        displayError('Error banning user');
+        displayError(body.message);
       }
     })
     .catch(error => {
       console.error('Error:', error);
-      displayError('Error banning user');
+      displayError('Internal server error');
     });
   } else {
     console.error('User not found in the list');
     displayError('User not found in the list');
   }
 }
+
+//deleteRoom
+
+document.getElementById('deleteRoom').onclick = function() {
+  const confirm = prompt('Type the Delete this room if you want to delete this room:');
+  if (confirm === 'Delete this room'){
+    deleteRoom();
+  }else{
+    displayError('Room not deleted.');
+  }
+};
 
 document.getElementById('banUser').onclick = function() {
   const username = prompt('Enter the username to ban:');

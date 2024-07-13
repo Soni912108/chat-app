@@ -70,12 +70,18 @@ function displayProfileInfo(data) {
   document.getElementById('messages-sent-count').textContent = `Messages Sent: ${data.messagesSentCount}`;
 
   const recentActivityList = document.getElementById('recent-activity-list');
-  recentActivityList.innerHTML = '';
-  data.recentActivity.forEach(activity => {
+    recentActivityList.innerHTML = '';
+    data.recentActivity.forEach(activity => {
       const activityItem = document.createElement('li');
-      activityItem.textContent = `${activity.timestamp}: ${activity.content} (in ${activity.roomName})`;
+
+      // Convert timestamp to Date object and format it
+      const timestamp = new Date(activity.timestamp);
+      const formattedTimestamp = timestamp.toLocaleString(); // Adjust format as needed
+
+      activityItem.textContent = `Message: ${activity.content} at ${formattedTimestamp}  (in ${activity.roomName})`;
       recentActivityList.appendChild(activityItem);
-  });
+    });
+
 }
 
 

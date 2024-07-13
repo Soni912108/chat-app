@@ -2,7 +2,6 @@
 
 const socket = io();
 
-
 let retryCount = 0;
 const maxRetries = 5;
 let retryTimeout;
@@ -136,3 +135,5 @@ function getNotificationNumber() {
     updateConnectionStatus(error.message, 'error');
   });
 }
+
+

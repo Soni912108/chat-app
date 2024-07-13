@@ -17,8 +17,6 @@ async function notifyUsers(sender, recipient, message, roomId) {
 
     // Count unread notifications
     const unreadCount = await Notification.countDocuments({ recipient: recipient, read: false });
-    console.log(unreadCount);
-    console.log(recipient.toString());
     // Emit the notification to the user via WebSocket
     io.to(recipient.toString()).emit('notification', unreadCount);
 

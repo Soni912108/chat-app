@@ -1,10 +1,9 @@
 //importing the jwt_decode method from the default implementation
 import jwt_decode from 'https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.esm.js';
 
-const userName = sessionStorage.getItem('username');
+
 const token = sessionStorage.getItem('token');
 const userId = sessionStorage.getItem('userID');
-
 
 
 
@@ -20,12 +19,15 @@ function isTokenExpired(token) {
 }
 
 
+
 function loadRooms() {
-  
+
+  const loadingRooms = document.getElementById('lds-ellipsis');
+
   if (isTokenExpired(token)) {
     sessionStorage.clear();
     window.location.href = '/login?message=loggedOut';
-    return; // Exit the function if token is expired
+    return; // Exit the function if token is expired .style.display = 'block';
   }
 
   fetch('/api/rooms', {
@@ -34,6 +36,7 @@ function loadRooms() {
       'Authorization': 'Bearer ' + token,
     }
   })
+
 
   .then(response => {
     if (response.status === 401) {
@@ -45,6 +48,7 @@ function loadRooms() {
     const roomsList = document.getElementById('rooms');
     roomsList.innerHTML = '';
     if (!data.rooms.length) {
+      loadingRooms.style.display = 'none';
       const noRoomsMessage = document.createElement('li');
       noRoomsMessage.textContent = 'No rooms available';
       roomsList.appendChild(noRoomsMessage);
@@ -52,6 +56,7 @@ function loadRooms() {
     }
 
     data.rooms.forEach((room) => {
+      loadingRooms.style.display = 'none';
       const roomItem = document.createElement('li'); // Changed to 'li' for proper list item
 
       // Use a ternary operator for concise conditional display
@@ -81,6 +86,7 @@ function loadRooms() {
       const roomsList = document.getElementById('rooms');
       roomsList.innerHTML = '';
       const errorMessage = document.createElement('li'); // Changed to 'li' for proper list item
+      loadingRooms.style.display = 'none';
       errorMessage.textContent = 'Error loading rooms';
       roomsList.appendChild(errorMessage);
     }
@@ -119,6 +125,7 @@ function createRoom() {
     })
   })
   .then(response => response.json())
+  
   .then(data => {
     if (data.room) {
       if (confirm('Room created successfully. Do you want to join this room?')) {
