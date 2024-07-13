@@ -1,6 +1,5 @@
 const express = require('express');
 const path = require('path');
-const cors = require('cors'); // Import CORS middleware
 
 const Message = require('./models/Messages');
 const Room = require('./models/Rooms');
@@ -18,11 +17,14 @@ const notificationRoutes = require('./routes/notifications');
 
 //utils
 const notifyUsers = require('./utils/notificationFunction');
-//import socket
-const { io, server, app } = require('./socket');
-//load env variables
-require('dotenv').config();
 
+const { io, server, app } = require('./socket');
+
+require('dotenv').config();
+const cors = require('cors'); // Import CORS middleware
+
+
+const PORT = process.env.PORT;
 
 
 // Middleware
@@ -31,13 +33,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'] // Specify allowed headers
 }));
 
-app.options('*', cors()); // Enable pre-flight for all routes
-
 app.use(express.json());
-
-// Serve static files from the public directory
-app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploads directory 
+app.use('/public', express.static('public')); // Serve static files from the public directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploads directory
 
 
 
@@ -116,11 +114,6 @@ process.on('SIGINT', () => {
 // Connect to MongoDB
 connectToMongoDB();
 
-
-const PORT = process.env.PORT;
-
-
-
 // Server listen logic
 server.listen(PORT, () => {
   console.info(`Server is running on port ${PORT}`);
@@ -198,7 +191,7 @@ io.on('connection', (socket) => {
   socket.on('banUser', (roomId, username) => {
     io.to(roomId).emit('userBanned', username);
   });
-
+  
   socket.on('typing', (roomId) => {
     socket.to(roomId).emit('typing');
   });
@@ -207,6 +200,3 @@ io.on('connection', (socket) => {
     console.log('user disconnected');
   });
 });
-
-
-module.exports = app;
