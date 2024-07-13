@@ -3,10 +3,11 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Notification = require('../models/Notification');
 
+
 // Fetch notifications for the logged-in user
 router.get('/', auth, async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipient: req.user.id }).sort({ createdAt: -1 });
+    const notifications = await Notification.find({ recipient: req.user.id }).sort({ createdAt: -1 }).lean();
     res.status(200).json({ notifications });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
