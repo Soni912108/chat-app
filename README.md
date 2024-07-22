@@ -2,6 +2,8 @@
 
 This is a Chat Application platform, built using Node.js, Express.js, MongoDB, and Redis for the Backend, and JavaScript, HTML, and CSS for the Frontend. It is a full-stack app that provides options to chat in private/public rooms created by users, the ability to customize your profile, upload profile photos, and more.
 
+Check out the live demo of the application [here](https://chatapp2.azurewebsites.net/).
+
 ## Table of Contents
 
 - [Features](#features)
