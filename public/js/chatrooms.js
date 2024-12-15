@@ -86,8 +86,8 @@ function displayMessages() {
       messages.innerHTML = ''; // Clear existing messages before displaying new ones
 
       if (data.messageTuples && data.messageTuples.length > 0) {
-        // Reverse the order of messages to display the latest message at the top
-        data.messageTuples.reverse().forEach(message => {
+        // Append the messages without reversing
+        data.messageTuples.forEach(message => {
           const messageElement = document.createElement('li');
           messageElement.className = 'message';
 
@@ -111,7 +111,7 @@ function displayMessages() {
           messageElement.appendChild(avatar);
           messageElement.appendChild(messageContent);
 
-          messages.prepend(messageElement); // Prepend the message to the container
+          messages.appendChild(messageElement); // Append the message to the container
         });
 
         scrollToBottom();
@@ -125,6 +125,7 @@ function displayMessages() {
       console.error('Error fetching messages:', error);
     });
 }
+
 
 
 let retryCount = 0;
