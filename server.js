@@ -122,6 +122,7 @@ server.listen(PORT, () => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
+app.use('/api/messages', messagesRoutes);
 app.use('/api/fileUpload', avatarRoutes); // Use avatar routes
 app.use('/api/user', settingsRoutes); // Use settings routes
 app.use('/api/notifications', notificationRoutes);
