@@ -64,7 +64,7 @@ Before you begin, ensure you have met the following requirements:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/chat-app.git
+   https://github.com/Soni912108/chat-app.git
    cd chat-app
 
 2.Install the dependencies:
