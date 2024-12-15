@@ -333,7 +333,7 @@ function sendMessage() {
       userId: userId,
       roomId: roomId,
     };
-
+    
     // Check for 'noMessagesElement' and update its content
     const noMessagesElement = document.getElementById('messages'); // Assuming 'messages' is the parent element
     if (noMessagesElement && noMessagesElement.textContent === 'It\'s empty. Type something here...') {
@@ -341,6 +341,7 @@ function sendMessage() {
     }
     
     socket.emit('message', message);
+    console.log('Sending message:', { content: messageContent, userId, roomId });
     input.value = '';
   }
 }
