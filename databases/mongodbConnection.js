@@ -2,19 +2,24 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const connectToMongoDB = async () => {
-  const password = process.env.PASSWORD; // Access password from environment variables
-  const encodedPassword = encodeURIComponent(password); // Encode the password to handle special characters
-  const username = process.env.USER; // Access username from environment variables
-  const MONGODB_URI = process.env.MONGODB_URI // Access the full URI with placeholders to replace
+  const password = process.env.PASSWORD; 
+  const encodedPassword = encodeURIComponent(password);
+  const username = process.env.USER;
+  const database = process.env.DB;
+  const appName = process.env.APP_NAME;
+  const MONGODB_URI = process.env.MONGODB_URI;
 
-    // Replace the placeholders with actual values
+  // Replace placeholders with actual values
+  const uri = MONGODB_URI
     .replace('USERNAME_PLACEHOLDER', username)
-    .replace('PASSWORD_PLACEHOLDER', encodedPassword);
+    .replace('PASSWORD_PLACEHOLDER', encodedPassword)
+    .replace('DATABASE_PLACEHOLDER', database);
+    .replace('APP_NAME_PLACEHOLDER', appName);
 
   try {
-    await mongoose.connect(MONGODB_URI);
+    await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     console.log('Connected to MongoDB');
-    console.log(MONGODB_URI);
+    console.log(uri);
   } catch (error) {
     console.error('Error connecting to MongoDB:', error);
   }
