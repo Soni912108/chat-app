@@ -22,7 +22,7 @@ router.get('/:roomId', async (req, res) => {
     const messageTuples = messages.map(message => ({
       username: message.user.username,
       content: message.content,
-      timestamp: message.createdAt, // Include the timestamp
+      timestamp: message.timestamp, // Include the timestamp
     }));
 
     res.json({ messageTuples });
