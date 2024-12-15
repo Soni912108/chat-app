@@ -41,13 +41,13 @@ module.exports = (app, redisClient) => {
 
     try {
       // Try fetching from Redis first
-      let messagesWithUsername = await getMessagesFromRedis(roomId);
+      //let messagesWithUsername = await getMessagesFromRedis(roomId);
 
-      if (messagesWithUsername) {
-        res.json({ messageTuples: messagesWithUsername });
-      } else {
+     // if (messagesWithUsername) {
+       // res.json({ messageTuples: messagesWithUsername });
+      //} else {
         // If not found in Redis, fetch from MongoDB
-        let messages = await Message.find({ room: roomId })
+      let messages = await Message.find({ room: roomId })
           .populate('user', 'username') // Populate only 'username' field
           .sort({ createdAt: 1 }); // Sort by creation date in descending order
 
