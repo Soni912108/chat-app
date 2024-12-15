@@ -86,8 +86,10 @@ function displayMessages() {
       messages.innerHTML = ''; // Clear existing messages before displaying new ones
 
       if (data.messageTuples && data.messageTuples.length > 0) {
-        // Append the messages without reversing
+        // Append the messages without reversing the order
         data.messageTuples.forEach(message => {
+          console.log(data); // This logs the full data object each time
+          console.log(message); // This logs each individual message in the loop
           const messageElement = document.createElement('li');
           messageElement.className = 'message';
 
@@ -105,8 +107,15 @@ function displayMessages() {
           const content = document.createElement('p');
           content.textContent = message.content;
 
+          // Create a time element
+          const timestamp = document.createElement('span');
+          timestamp.className = 'timestamp';
+          const formattedTime = new Date(message.timestamp).toLocaleString(); // Format timestamp
+          timestamp.textContent = formattedTime;
+
           messageContent.appendChild(username);
           messageContent.appendChild(content);
+          messageContent.appendChild(timestamp); // Add timestamp
 
           messageElement.appendChild(avatar);
           messageElement.appendChild(messageContent);
@@ -114,7 +123,7 @@ function displayMessages() {
           messages.appendChild(messageElement); // Append the message to the container
         });
 
-        scrollToBottom();
+        scrollToBottom(); // Scroll to the bottom of the container
       } else {
         const noMessagesElement = document.createElement('li');
         noMessagesElement.textContent = 'It\'s empty. Type something here...';
@@ -125,6 +134,7 @@ function displayMessages() {
       console.error('Error fetching messages:', error);
     });
 }
+
 
 
 
