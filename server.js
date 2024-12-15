@@ -116,7 +116,7 @@ connectToMongoDB();
 // Server listen logic
 server.listen(PORT, () => {
   console.info(`Server is running on port ${PORT}`);
-  messagesRoutes(app, redisClient);
+  // messagesRoutes(app, redisClient);
 });
 
 // Routes
