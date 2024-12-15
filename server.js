@@ -165,7 +165,7 @@ io.on('connection', (socket) => {
       await newMessage.save();
 
       // Add the message to the room's message list in Redis
-      redisClient.lPush(`room:${roomId}:messages`, JSON.stringify(newMessage));
+      //redisClient.lPush(`room:${roomId}:messages`, JSON.stringify(newMessage));
 
       // Fetch the user's username
       const user = await User.findById(userId);
