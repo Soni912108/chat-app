@@ -5,7 +5,7 @@ const Message = require('./models/Messages');
 const Room = require('./models/Rooms');
 
 const connectToMongoDB = require('./databases/mongodbConnection');
-const connectToRedis = require('./databases/redisConnection');
+// const connectToRedis = require('./databases/redisConnection');
 const User = require('./models/Users'); 
 
 const avatarRoutes = require('./routes/avatar');
@@ -92,23 +92,23 @@ app.use((err, req, res, next) => {
 app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
 
 // Connect to Redis
-const redisClient = connectToRedis();
+// const redisClient = connectToRedis();
 
-redisClient.connect()
-  .then(() => console.log('Connected to Redis, server.js file'))
-  .catch((err) => console.error('Redis connection error:', err));
+// redisClient.connect()
+//   .then(() => console.log('Connected to Redis, server.js file'))
+//   .catch((err) => console.error('Redis connection error:', err));
 
-// Handle process exit and cleanup
-process.on('exit', () => {
-  redisClient.quit();
-});
+// // Handle process exit and cleanup
+// process.on('exit', () => {
+//   redisClient.quit();
+// });
 
-process.on('SIGINT', () => {
-  redisClient.quit(() => {
-    console.log('Redis client closed due to app termination');
-    process.exit(0);
-  });
-});
+// process.on('SIGINT', () => {
+//   redisClient.quit(() => {
+//     console.log('Redis client closed due to app termination');
+//     process.exit(0);
+//   });
+// });
 
 // Connect to MongoDB
 connectToMongoDB();
