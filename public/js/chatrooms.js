@@ -88,8 +88,6 @@ function displayMessages() {
       if (data.messageTuples && data.messageTuples.length > 0) {
         // Append the messages without reversing the order
         data.messageTuples.forEach(message => {
-          console.log(data); // This logs the full data object each time
-          console.log(message); // This logs each individual message in the loop
           const messageElement = document.createElement('li');
           messageElement.className = 'message';
 
@@ -352,7 +350,6 @@ function sendMessage() {
     }
     
     socket.emit('message', message);
-    console.log('Sending message:', { content: messageContent, userId, roomId });
     input.value = '';
   }
 }
