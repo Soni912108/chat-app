@@ -26,7 +26,6 @@ const connectToMongoDB = async () => {
   const sanitizedUri = uri.replace(encodedPassword, '****'); // Redact sensitive parts
 
   try {
-    console.log(`Connecting to MongoDB with URI: ${sanitizedUri}`);
     await mongoose.connect(uri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -34,9 +33,8 @@ const connectToMongoDB = async () => {
       serverSelectionTimeoutMS: 5000, // Timeout for unreachable servers
       socketTimeoutMS: 45000, // Close idle sockets
     });
-    console.log('Connected to MongoDB');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('MongoDB connection error');
   }
 };
 
