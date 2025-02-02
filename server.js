@@ -3,7 +3,7 @@ const path = require('path');
 
 const Message = require('./models/Messages');
 const Room = require('./models/Rooms');
-
+const auth = require('../middleware/auth');
 const connectToMongoDB = require('./databases/mongodbConnection');
 // const connectToRedis = require('./databases/redisConnection');
 const User = require('./models/Users'); 
@@ -39,28 +39,47 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve u
 
 
 // Middleware to protect dashboard and room routes
-app.get('/dashboard', (req, res) => {
+app.get('/dashboard',auth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'dashboard.html'));
 });
 
 // Route to render the rooms templates
-app.get('/room',  (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'templates', 'room.html'));
-});
+app.get('/room', auth, async (req, res) => {
+    try {
+        const { roomId } = req.query; 
+        if (!roomId) return res.status(400).send('Room ID is required');
 
+        const room = await Room.findById(roomId);
+        if (!room) return res.status(404).send('Room not found');
+
+        const userId = req.user.id;
+
+        // Prevent unauthorized users from accessing private rooms
+        const isMember = room.users.includes(userId);
+        const isOwner = room.roomOwner.toString() === userId;
+        if (room.isPrivate && !isMember && !isOwner) {
+            return res.status(403).send('Access denied: You are not a member of this private room');
+        }
+
+        // Serve the room HTML page only if access is valid
+        res.sendFile(path.join(__dirname, 'public', 'templates', 'dashboard.html'));
+    } catch (error) {
+        res.status(500).send('Internal Server Error');
+    }
+});
 // Route to render profile page
-app.get('/profile',(req, res) => {
+app.get('/profile',auth,(req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'profile.html'));
 });
 
 // Route to render notification page
-app.get('/notification',(req, res) => {
+app.get('/notification',auth,(req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'notification.html'));
 });
 
 
 // Route to render updateUserProfile page
-app.get('/updateUser',  (req, res) => {
+app.get('/updateUser', auth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'updateUser.html'));
 });
 
