@@ -28,6 +28,12 @@ router.get('/', auth, async (req, res) => {
 // // Get single room details--used in displaying room owner
 router.get('/:roomId', auth, async (req, res) => {
   const { roomId } = req.params;
+  const userId = req.user.id;
+  const isMember = room.users.includes(userId);
+
+  if (room.isPrivate && !isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+  }
   try {
     const room = await Room.findById(roomId).populate('roomOwner', 'username').populate('users', 'username');
     if (!room) return res.status(404).json({ message: 'Room not found' });
@@ -132,7 +138,13 @@ router.post('/create',auth, async (req, res) => {
 // Route to make users join a room
 router.post('/:roomId/join', auth, async (req, res) => {
   const { roomId } = req.params;
+  const userId = req.user.id;
+  const isMember = room.users.includes(userId);
+  const isOwner = room.roomOwner.toString() === userId;
 
+  if (room.isPrivate && !isMember && !isOwner) {
+      return res.status(403).json({ message: 'Access denied' });
+  }
   try {
     const room = await Room.findById(roomId).populate('roomOwner', 'username');
     if (!room) return res.status(404).json({ message: 'Room not found' });
