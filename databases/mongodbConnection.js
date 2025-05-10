@@ -27,7 +27,6 @@ const connectToMongoDB = async () => {
 
   try {
     await mongoose.connect(uri, {
-      useUnifiedTopology: true,
       autoIndex: false,
       serverSelectionTimeoutMS: 5000, // Timeout for unreachable servers
       socketTimeoutMS: 45000, // Close idle sockets
