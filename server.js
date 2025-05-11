@@ -3,7 +3,7 @@ const path = require('path');
 
 const Message = require('./models/Messages');
 const Room = require('./models/Rooms');
-const auth = require('../middleware/auth');
+const auth = require('./middleware/auth');
 const connectToMongoDB = require('./databases/mongodbConnection');
 // const connectToRedis = require('./databases/redisConnection');
 const User = require('./models/Users'); 
