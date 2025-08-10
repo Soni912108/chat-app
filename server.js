@@ -2,6 +2,9 @@ const express = require('express');
 const path = require('path');
 const http = require('http');
 
+const Message = require('./models/Messages');
+const Room = require('./models/Rooms');
+const auth = require('../middleware/auth');
 const connectToMongoDB = require('./databases/mongodbConnection');
 const avatarRoutes = require('./routes/avatar');
 const authRoutes = require('./routes/userAuth');
