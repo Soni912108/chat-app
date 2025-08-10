@@ -23,17 +23,21 @@ const connectToMongoDB = async () => {
     .replace('DATABASE_PLACEHOLDER', database)
     .replace('APP_NAME_PLACEHOLDER', appName);
 
-  const sanitizedUri = uri.replace(encodedPassword, '****'); // Redact sensitive parts
-
+  // const sanitizedUri = uri.replace(encodedPassword, '****'); // Redact sensitive parts
+  // console.log('MongoDB URI updated:', sanitizedUri);
   try {
     await mongoose.connect(uri, {
       autoIndex: false,
       serverSelectionTimeoutMS: 5000, // Timeout for unreachable servers
       socketTimeoutMS: 45000, // Close idle sockets
-    });
+      family: 4, // Force IPv4 to avoid some DNS issues
+    }).then(() => {
+      console.log('MongoDB connection successful');
+    })
   } catch (error) {
-    console.error('MongoDB connection error');
+    console.error('MongoDB connection error:', error);
   }
 };
+
 
 module.exports = connectToMongoDB;

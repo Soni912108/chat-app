@@ -1,30 +1,25 @@
 const express = require('express');
 const path = require('path');
+const http = require('http');
 
-const Message = require('./models/Messages');
-const Room = require('./models/Rooms');
-const auth = require('../middleware/auth');
 const connectToMongoDB = require('./databases/mongodbConnection');
-// const connectToRedis = require('./databases/redisConnection');
-const User = require('./models/Users'); 
-
 const avatarRoutes = require('./routes/avatar');
 const authRoutes = require('./routes/userAuth');
 const roomRoutes = require('./routes/room');
 const messagesRoutes = require('./routes/messages');
 const settingsRoutes = require('./routes/settings');
 const notificationRoutes = require('./routes/notifications');
-
-//utils
-const notifyUsers = require('./utils/notificationFunction');
-
-const { io, server, app } = require('./socket');
+const { setupSocketHandlers } = require('./socket');
 
 require('dotenv').config();
 const cors = require('cors'); // Import CORS middleware
 
 
 const PORT = process.env.PORT; //is need to start the server
+
+// Create app and server
+const app = express();
+const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
@@ -39,47 +34,33 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve u
 
 
 // Middleware to protect dashboard and room routes
-app.get('/dashboard',auth, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'templates', 'dashboard.html'));
-});
-
-// Route to render the rooms templates
-app.get('/room', auth, async (req, res) => {
-    try {
-        const { roomId } = req.query; 
-        if (!roomId) return res.status(400).send('Room ID is required');
-
-        const room = await Room.findById(roomId);
-        if (!room) return res.status(404).send('Room not found');
-
-        const userId = req.user.id;
-
-        // Prevent unauthorized users from accessing private rooms
-        const isMember = room.users.includes(userId);
-        const isOwner = room.roomOwner.toString() === userId;
-        if (room.isPrivate && !isMember && !isOwner) {
-            return res.status(403).send('Access denied: You are not a member of this private room');
-        }
-
-        // Serve the room HTML page only if access is valid
+app.get('/dashboard', (req, res) => {
+  try {
         res.sendFile(path.join(__dirname, 'public', 'templates', 'dashboard.html'));
     } catch (error) {
-        res.status(500).send('Internal Server Error');
+        console.error('Error serving dashboard:', error);
+        res.status(500).send('Error loading dashboard');
     }
 });
+// Route to render the rooms templates
+// Note: Access control is handled client-side in chatrooms.js
+app.get('/room',(req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'templates', 'room.html'));
+});
+
 // Route to render profile page
-app.get('/profile',auth,(req, res) => {
+app.get('/profile',(req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'profile.html'));
 });
 
 // Route to render notification page
-app.get('/notification',auth,(req, res) => {
+app.get('/notification',(req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'notification.html'));
 });
 
 
 // Route to render updateUserProfile page
-app.get('/updateUser', auth, (req, res) => {
+app.get('/updateUser', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'updateUser.html'));
 });
 
@@ -101,8 +82,12 @@ app.get('/register', (req, res) => {
 
 // Error handling for unauthorized access
 app.use((err, req, res, next) => {
-  if (err.status === 401) {
-    res.redirect('/login.html?message=loggedOut');
+  // Only redirect to login for page routes, not API routes
+  if (err.status === 401 && !req.path.startsWith('/api/')) {
+    res.redirect('/login?message=loggedOut');
+  } else if (err.status === 401 && req.path.startsWith('/api/')) {
+    // For API routes, return JSON error instead of redirecting
+    res.status(401).json({ error: 'Unauthorized' });
   } else {
     res.status(err.status || 500).send(err.message || 'Internal Server Error');
   }
@@ -146,76 +131,5 @@ app.use('/api/fileUpload', avatarRoutes); // Use avatar routes
 app.use('/api/user', settingsRoutes); // Use settings routes
 app.use('/api/notifications', notificationRoutes);
 
-
-
-
-io.on('connection', (socket) => {
-  console.log('a user connected');
-
-  socket.on('joinRoom', async (roomId) => {
-    socket.join(roomId);
-    console.log(`User joined room ${roomId}`);
-
-    const room = await Room.findById(roomId).populate('users', 'username');
-    if (room.users.length > 0) {
-      const userList = room.users.map(user => ({ id: user._id, username: user.username }));
-      io.to(roomId).emit('updateUserList', userList);
-    }
-    
-  });
-
-  socket.on('message', async (msg) => {
-    const { content, userId, roomId } = msg;
-
-    if (!content || !userId || !roomId) {
-      return console.error('Message validation failed: Missing required fields');
-    }
-
-    // Check if the user is banned from the room
-    const room = await Room.findById(roomId);
-    const isBanned = room.banned.includes(userId);
-    if (isBanned) {
-      socket.emit('error', 'You are banned from this room');
-      return;
-    }
-
-    try {
-      // Save the message to MongoDB
-      const newMessage = new Message({ content, user: userId, room: roomId });
-      await newMessage.save();
-
-      // Add the message to the room's message list in Redis
-      //redisClient.lPush(`room:${roomId}:messages`, JSON.stringify(newMessage));
-
-      // Fetch the user's username
-      const user = await User.findById(userId);
-      const username = user ? user.username : 'Unknown user';
-
-      // Emit the message to the specific room
-      io.to(roomId).emit('message', { content, user: username, roomId });
-
-      // Notify all users in the room (except the sender)
-      const messageNotification = `New message in ${room.name} by ${username}: ${content}`;
-      const usersToNotify = room.users.filter(user => user.toString() !== userId);
-      for (const user of usersToNotify) {
-        await notifyUsers(userId,user,messageNotification,roomId);
-      }
-        
-
-    } catch (error) {
-      console.error('Error saving message:', error);
-    }
-  });
-
-  socket.on('banUser', (roomId, username) => {
-    io.to(roomId).emit('userBanned', username);
-  });
-  
-  socket.on('typing', (roomId) => {
-    socket.to(roomId).emit('typing');
-  });
-
-  socket.on('disconnect', async () => {
-    console.log('user disconnected');
-  });
-});
+// Setup Socket.io handlers
+setupSocketHandlers(server);

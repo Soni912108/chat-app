@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/public/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
     <script defer src="/public/js/navbar.js"></script>
     <script defer src="/public/js/notifications.js"></script>
     <title>Notifications</title>
@@ -24,6 +25,11 @@
     <div class="notifications-container">
         <p class="dashboard-error" id="error"></p>
         <h2>Notifications</h2>
+        <div id="status" style="margin: 10px; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc;">
+            <strong>Status:</strong> <span id="status-text">Loading...</span>
+        </div>
+        <button id="test-notification-btn" style="margin: 10px; padding: 5px;">Create Test Notification</button>
+        <button id="debug-notifications-btn" style="margin: 10px; padding: 5px;">Debug All Notifications</button>
         <ul id="notifications-list"></ul>
     </div>
     

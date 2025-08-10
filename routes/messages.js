@@ -1,13 +1,27 @@
 const express = require('express');
 const Message = require('../models/Messages');
 const router = express.Router();
-const mongoose = require('mongoose');
-const User = mongoose.model('User');
+const auth = require('../middleware/auth');
+const Room = require('../models/Rooms');
 
 
 // Function to fetch messages (without Redis)
-router.get('/:roomId', async (req, res) => {
+router.get('/:roomId', auth,async (req, res) => {
   const { roomId } = req.params;
+  const userId = req.user.id;
+  const room = await Room.findById(roomId);
+
+  if (!room) return res.status(404).json({ message: 'Room not found' });
+
+  const isMember = room.users.map(u => u._id.toString()).includes(userId);
+  const isBanned = room.banned.map(u => u.toString()).includes(userId);
+
+  if (room.isPrivate && !isMember) {
+    return res.status(403).json({ message: 'Access denied' });
+  }
+  if (isBanned) {
+    return res.status(403).json({ message: 'You are banned from this room' });
+  }
 
   try {
     // Fetch messages directly from MongoDB

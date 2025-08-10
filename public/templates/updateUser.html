@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Change Password</title>
   <link rel="stylesheet" href="/public/css/style.css">
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
   <nav class="update-nav">
@@ -44,13 +45,6 @@
       </div>
   </div>
 
-
-  <script>
-    //check if the user data is present on the sessionStorage
-    if (!sessionStorage.getItem('userId') && sessionStorage.getItem('token') == null) {
-      window.location.href = '/login';
-    }
-  </script>
   <script defer src="/public/js/updateUser.js"></script>
   <script defer src="/public/js/navbar.js"></script>
 </body>

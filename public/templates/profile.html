@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Profile</title>
     <link rel="stylesheet" href="/public/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
     <script defer src="/public/js/navbar.js"></script>
     <script defer src="/public/js/profile.js"></script>
 </head>
@@ -71,8 +72,8 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + sessionStorage.getItem('token'),
             },
+            credentials: 'include',
             body: JSON.stringify({ theme: theme }),
         });
 
@@ -106,9 +107,7 @@
     try {
         const response = await fetch('/api/user/settings', {
             method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + sessionStorage.getItem('token'),
-            },
+            credentials: 'include',
         });
 
         if (!response.ok) {

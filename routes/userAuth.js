@@ -7,6 +7,8 @@ const Room = require('../models/Rooms');
 const auth = require('../middleware/auth');
 const Messages = require('../models/Messages');
 
+require('dotenv').config();
+
 
 router.post('/register', async (req, res) => {
   const { email, username, password } = req.body;
@@ -23,12 +25,20 @@ router.post('/register', async (req, res) => {
     }
 
     const user = new User({ email, username, password });
-    user.lastLogin = Date.now(); // Update with current timestamp
+    user.lastLogin = Date.now();
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ token, userID: user._id, userName: user.username }); 
 
+    // Set token as HTTP-only cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 1000
+    });
+
+    res.status(200).json({ userID: user._id, userName: user.username }); // No token in body
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -39,7 +49,6 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   const { username, password } = req.body;
-
   try {
     const user = await User.findOne({ username });
 
@@ -51,11 +60,20 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    user.lastLogin = new Date(); // Update the lastLogin with current timestamp
-    await user.save(); // Save the updated user to the database
+    user.lastLogin = new Date();
+    await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.status(200).json({ token, userID: user._id, userName: user.username });
+
+    // Set token as HTTP-only cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 1000
+    });
+
+    res.status(200).json({ userID: user._id, userName: user.username }); // No token in body
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -159,5 +177,47 @@ router.get('/profileInfo/:userId', auth, async (req, res) => {
   }
 });
 
+
+// Route to logout user (clear authentication cookie)
+router.post('/logout', (req, res) => {
+  try {
+    // Clear the authentication cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict'
+    });
+    
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Error in /logout:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Route to verify authentication token
+router.get('/verify', auth, async (req, res) => {
+  try {
+    // If we reach here, the auth middleware has already verified the token
+    // and req.user contains the user information
+    const user = await User.findById(req.user.id).select('username email');
+    
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    
+    res.status(200).json({ 
+      message: 'Token is valid', 
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        email: user.email 
+      } 
+    });
+  } catch (error) {
+    console.error('Error in /verify:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 module.exports = router;

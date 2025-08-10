@@ -1,1 +1,309 @@
-async function fetchNotifications(){try{const a=await fetch("/api/notifications",{method:"GET",headers:{Authorization:"Bearer "+sessionStorage.getItem("token")}});if(!a.ok){const b=await a.json();throw new Error(b.message)}const b=await a.json();displayNotifications(b.notifications)}catch(a){console.error("Error fetching notifications:",a)}}function displayNotifications(a){const b=document.getElementById("notifications-list");if(b.innerHTML="",0===a.length){const a=document.createElement("li");a.textContent="No new notifications.",a.style.color="green",b.appendChild(a)}a.forEach(a=>{const c=document.createElement("li");if(c.textContent=a.message,a.message.includes("wants to join your private room")&&!1===a.read){const d=document.createElement("button");d.textContent="Accept Request",d.addEventListener("click",async()=>{const b=await handleRoomRequestNotification(a.sender,a.roomId,a._id);if(b)d.style.display="none",c.remove();else{console.error("Error accepting room request");displayError("Error accepting room request. User might already be in the room list")}}),c.appendChild(d),b.appendChild(c)}const d=document.createElement("button");d.textContent=a.read?"Already Read":"Mark as Read",d.addEventListener("click",async()=>{await markNotificationAsRead(a._id),d.textContent="Already Read",c.style.color="green"}),c.appendChild(d);const e=document.createElement("button");e.textContent="Delete",e.addEventListener("click",async()=>{await deleteNotification(a._id),b.removeChild(c)}),c.appendChild(e),b.appendChild(c)})}async function markNotificationAsRead(a){try{const b=await fetch(`/api/notifications/${a}/read`,{method:"POST",headers:{Authorization:"Bearer "+sessionStorage.getItem("token")}});if(!b.ok){const a=await b.json();throw new Error(a.message)}console.log("Notification marked as read successfully")}catch(a){console.error("Error marking notification as read:",a)}}async function deleteNotification(a){try{const b=await fetch(`/api/notifications/${a}/delete`,{method:"DELETE",headers:{Authorization:"Bearer "+sessionStorage.getItem("token")}});if(!b.ok){const a=await b.json();throw console.error("Server response error:",a),new Error(a.message)}console.log("Notification deleted successfully")}catch(a){console.error("Error deleting notification:",a)}}async function handleRoomRequestNotification(a,b,c){try{const d=await fetch(`/api/rooms/${b}/${a}/accept`,{method:"POST",headers:{Authorization:"Bearer "+sessionStorage.getItem("token")}});if(!d.ok){const a=await d.json();throw new Error(a.message)}return console.log("User added to the room successfully"),await markNotificationAsRead(c),!0}catch(a){return console.error("Error accepting room request:",a),!1}}function displayError(a){const b=document.getElementById("error");b.textContent=a,b.style.display="block",setTimeout(()=>{b.style.display="none"},5e3)}document.addEventListener("DOMContentLoaded",fetchNotifications);
+// Check if user is authenticated before loading notifications content
+async function checkAuthentication() {
+    try {
+        updateStatus("Checking authentication status...");
+        console.log("Checking authentication status...");
+        
+        const response = await fetch('/api/auth/verify', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            updateStatus("Authentication failed, redirecting to login");
+            console.log("Authentication failed, redirecting to login");
+            window.location.href = '/login?message=loggedOut';
+            return false;
+        }
+        
+        updateStatus("Authentication successful, loading notifications");
+        console.log("Authentication successful, loading notifications");
+        return true;
+    } catch (error) {
+        updateStatus("Error checking authentication: " + error.message);
+        console.error("Error checking authentication:", error);
+        window.location.href = '/login?message=loggedOut';
+        return false;
+    }
+}
+
+// Update status display
+function updateStatus(message) {
+    const statusText = document.getElementById("status-text");
+    if (statusText) {
+        statusText.textContent = message;
+    }
+    console.log("Status:", message);
+}
+
+// Initialize socket connection for real-time notifications
+let socket;
+function initializeSocket() {
+    socket = io({ path: '/socket.io' });
+    
+    socket.on('connect', () => {
+        console.log('Connected to server for notifications');
+    });
+    
+    socket.on('notification', (unreadCount) => {
+        console.log('New notification received, refreshing notifications list');
+        // Refresh the notifications list when a new notification arrives
+        fetchNotifications();
+    });
+    
+    socket.on('disconnect', () => {
+        console.log('Disconnected from server');
+    });
+}
+
+async function fetchNotifications() {
+    try {
+        updateStatus("Fetching notifications...");
+        console.log("Fetching notifications...");
+        const response = await fetch("/api/notifications", {
+            method: "GET",
+            credentials: "include" // Send cookies for authentication
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to fetch notifications');
+        }
+        
+        const data = await response.json();
+        console.log("Notifications fetched:", data.notifications);
+        console.log("Number of notifications:", data.notifications.length);
+        
+        updateStatus(`Found ${data.notifications.length} notifications`);
+        
+        // Log each notification for debugging
+        data.notifications.forEach((notification, index) => {
+            console.log(`Notification ${index + 1}:`, {
+                id: notification._id,
+                message: notification.message,
+                sender: notification.sender,
+                recipient: notification.recipient,
+                roomId: notification.roomId,
+                read: notification.read,
+                createdAt: notification.createdAt
+            });
+        });
+        
+        displayNotifications(data.notifications);
+    } catch (error) {
+        updateStatus("Error fetching notifications: " + error.message);
+        console.error("Error fetching notifications:", error);
+        displayError("Error fetching notifications: " + error.message);
+    }
+}
+
+function displayNotifications(notifications) {
+    console.log("displayNotifications called with:", notifications);
+    
+    const notificationsList = document.getElementById("notifications-list");
+    console.log("Found notifications list element:", notificationsList);
+    
+    if (!notificationsList) {
+        console.error("Notifications list element not found");
+        return;
+    }
+    
+    // Clear the list first
+    console.log("Clearing notifications list...");
+    notificationsList.innerHTML = "";
+    
+    if (notifications.length === 0) {
+        console.log("No notifications to display, showing 'no notifications' message");
+        const noNotificationsItem = document.createElement("li");
+        noNotificationsItem.textContent = "No new notifications.";
+        noNotificationsItem.style.color = "green";
+        notificationsList.appendChild(noNotificationsItem);
+        return;
+    }
+    
+    console.log(`Displaying ${notifications.length} notifications...`);
+    
+    notifications.forEach((notification, index) => {
+        console.log(`Creating notification item ${index + 1}:`, notification.message);
+        
+        const notificationItem = document.createElement("li");
+        notificationItem.textContent = notification.message;
+        
+        // Add accept button for join requests
+        if (notification.message.includes("wants to join your private room") && !notification.read) {
+            console.log("Adding accept button for join request");
+            const acceptButton = document.createElement("button");
+            acceptButton.textContent = "Accept Request";
+            acceptButton.addEventListener("click", async () => {
+                const success = await handleRoomRequestNotification(notification.sender, notification.roomId, notification._id);
+                if (success) {
+                    acceptButton.style.display = "none";
+                    notificationItem.remove();
+                } else {
+                    console.error("Error accepting room request");
+                    displayError("Error accepting room request. User might already be in the room list");
+                }
+            });
+            notificationItem.appendChild(acceptButton);
+        }
+        
+        // Add mark as read button
+        const markReadButton = document.createElement("button");
+        markReadButton.textContent = notification.read ? "Already Read" : "Mark as Read";
+        markReadButton.addEventListener("click", async () => {
+            await markNotificationAsRead(notification._id);
+            markReadButton.textContent = "Already Read";
+            notificationItem.style.color = "green";
+        });
+        notificationItem.appendChild(markReadButton);
+        
+        // Add delete button
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", async () => {
+            await deleteNotification(notification._id);
+            notificationsList.removeChild(notificationItem);
+        });
+        notificationItem.appendChild(deleteButton);
+        
+        notificationsList.appendChild(notificationItem);
+        console.log(`Notification item ${index + 1} added to DOM`);
+    });
+    
+    console.log("Finished displaying all notifications");
+}
+
+async function markNotificationAsRead(notificationId) {
+    try {
+        const response = await fetch(`/api/notifications/${notificationId}/read`, {
+            method: "POST",
+            credentials: "include" // Send cookies for authentication
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to mark notification as read');
+        }
+        
+        console.log("Notification marked as read successfully");
+    } catch (error) {
+        console.error("Error marking notification as read:", error);
+        displayError("Error marking notification as read: " + error.message);
+    }
+}
+
+async function deleteNotification(notificationId) {
+    try {
+        const response = await fetch(`/api/notifications/${notificationId}/delete`, {
+            method: "DELETE",
+            credentials: "include" // Send cookies for authentication
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to delete notification');
+        }
+        
+        console.log("Notification deleted successfully");
+    } catch (error) {
+        console.error("Error deleting notification:", error);
+        displayError("Error deleting notification: " + error.message);
+    }
+}
+
+async function handleRoomRequestNotification(senderId, roomId, notificationId) {
+    try {
+        const response = await fetch(`/api/rooms/${roomId}/${senderId}/accept`, {
+            method: "POST",
+            credentials: "include" // Send cookies for authentication
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to accept room request');
+        }
+        
+        console.log("User added to the room successfully");
+        await markNotificationAsRead(notificationId);
+        return true;
+    } catch (error) {
+        console.error("Error accepting room request:", error);
+        displayError("Error accepting room request: " + error.message);
+        return false;
+    }
+}
+
+function displayError(message) {
+    const errorElement = document.getElementById("error");
+    if (errorElement) {
+        errorElement.textContent = message;
+        errorElement.style.display = "block";
+        setTimeout(() => {
+            errorElement.style.display = "none";
+        }, 5000);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+    console.log("Notifications page loaded, checking authentication...");
+    const isAuthenticated = await checkAuthentication();
+    if (isAuthenticated) {
+        console.log("Authentication successful, fetching notifications...");
+        fetchNotifications();
+        initializeSocket(); // Initialize socket connection
+        
+        // Add test button event listeners
+        const testBtn = document.getElementById('test-notification-btn');
+        const debugBtn = document.getElementById('debug-notifications-btn');
+        
+        if (testBtn) {
+            testBtn.addEventListener('click', async () => {
+                try {
+                    console.log('Creating test notification...');
+                    const response = await fetch('/api/notifications/test', {
+                        method: 'POST',
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Test notification created:', data);
+                        alert('Test notification created! Check the list below.');
+                        // Refresh the notifications list
+                        fetchNotifications();
+                    } else {
+                        const error = await response.json();
+                        alert('Error creating test notification: ' + error.message);
+                    }
+                } catch (error) {
+                    console.error('Error creating test notification:', error);
+                    alert('Error creating test notification: ' + error.message);
+                }
+            });
+        }
+        
+        if (debugBtn) {
+            debugBtn.addEventListener('click', async () => {
+                try {
+                    console.log('Fetching all notifications for debugging...');
+                    const response = await fetch('/api/notifications/debug/all', {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('All notifications:', data);
+                        alert(`Found ${data.count} notifications in database. Check console for details.`);
+                    } else {
+                        const error = await response.json();
+                        alert('Error fetching all notifications: ' + error.message);
+                    }
+                } catch (error) {
+                    console.error('Error fetching all notifications:', error);
+                    alert('Error fetching all notifications: ' + error.message);
+                }
+            });
+        }
+    }
+});

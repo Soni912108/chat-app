@@ -51,19 +51,26 @@
       window.location.href = '/dashboard'; // Redirect to the dashboard.html page
     }
 
-    function logout() {
-      sessionStorage.clear();
-      window.location.href = '/login?message=loggedOut';
-    }
-
-    function checkAuthenticationToEnterRoom() {
-        const token = sessionStorage.getItem('token');
-        if (!token) {
-          window.location.href = '/login?message=loggedOut'; // Redirect with a query parameter
-        }
+    async function logout() {
+      try {
+        // Call server logout endpoint to clear cookies
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        
+        // Redirect to login
+        window.location.href = '/login?message=loggedOut';
+      } catch (error) {
+        console.error('Error during logout:', error);
+        // Even if server logout fails, clear local storage and redirect
+        sessionStorage.clear();
+        window.location.href = '/login?message=loggedOut';
       }
-
-    document.addEventListener('DOMContentLoaded', checkAuthenticationToEnterRoom);
+    }
 </script>
 
 </body>
