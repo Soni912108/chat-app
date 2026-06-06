@@ -5,37 +5,20 @@ const auth = require('../middleware/auth');
 const router = express.Router();
 const Message = require('../models/Messages');
 const User = require('../models/Users');
-const { io } = require('../socket');  // Import io from the socket module
+const logger = require('../utils/logger');
+const { io } = require('../socket');
 
-//utils
 const notifyUsers = require('../utils/notificationFunction');
-
-
 
 // Fetch all rooms
 router.get('/', auth, async (req, res) => {
-  console.log('Rooms listing request - User ID:', req.user.id);
-  
   try {
-    console.log('Rooms listing - Fetching rooms from database...');
-    
     const rooms = await Room.find().populate('roomOwner', 'username')
                            .populate('users', 'username');
     
-    console.log('Rooms listing - Rooms found:', rooms.length);
-    
-    if (!rooms || !rooms.length) {
-      console.log('Rooms listing - No rooms found');
-      return res.status(200).json({ 
-        rooms: [], 
-        message: 'No rooms found' 
-      });
-    }
-
-    console.log('Rooms listing - Returning rooms to client');
     res.json({ rooms });
   } catch (error) {
-    console.error('Error in /api/rooms:', error); // Debug logging
+    logger.error(`Error fetching rooms: ${error.message}`);
     res.status(500).json({ 
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
@@ -159,101 +142,68 @@ router.post('/create',auth, async (req, res) => {
       isPrivate: isPrivate
     });
     
-    console.log('Room creation - Room object created:', room);
-    
     await room.save();
-    
-    console.log('Room creation - Room saved successfully:', room._id);
     
     res.status(201).json({ message: 'Room created successfully', room });
   } catch (error) {
-    console.error('Room creation - Error:', error);
+    logger.error(`Room creation error: ${error.message}`);
     res.status(400).json({ message: error.message });
   }
 });
 
-
-
 // Route to make users join a room
 router.post('/:roomId/join', auth, async (req, res) => {
-  console.log('Room join request - Room ID:', req.params.roomId);
-  console.log('Room join request - User ID:', req.user.id);
-  
   const { roomId } = req.params;
   const userId = req.user.id;
-  const room = await Room.findById(roomId).populate('roomOwner', 'username');
-
-  if (!room) {
-    console.log('Room join request - Room not found');
-    return res.status(404).json({ message: 'Room not found' });
-  }
-
-  console.log('Room join request - Room found:', room.name);
-  console.log('Room join request - Room owner:', room.roomOwner._id);
-  console.log('Room join request - Room users:', room.users);
-  console.log('Room join request - Room banned:', room.banned);
-
-  const isMember = room.users.map(u => u.toString()).includes(userId);
-  const isOwner = room.roomOwner._id.toString() === userId;
-  const isBanned = room.banned.map(u => u.toString()).includes(userId);
   
-  console.log("isBanned:", isBanned);
-  console.log("isMember:", isMember);
-  console.log("isOwner:", isOwner);
-  console.log("room.isPrivate:", room.isPrivate);
-  console.log("room.pendingRequests:", room.pendingRequests);
-  console.log("room.users:", room.users);
-  console.log("room.roomOwner:", room.roomOwner);
-  console.log("room.name:", room.name);
-  console.log("room.id:", room.id);
-  console.log("room.createdAt:", room.createdAt);
-  console.log("room.updatedAt:", room.updatedAt);
-  
-  if (isBanned) {
-    console.log('Room join request - User is banned');
-    return res.status(403).json({ message: 'You are banned from this room' });
-  }
+  try {
+    const room = await Room.findById(roomId).populate('roomOwner', 'username');
 
-  if (room.isPrivate && !isMember && !isOwner) {
-    console.log('Room join request - Private room, sending join request');
-    // Only allow sending a join request, not joining directly
-    const joinRequestExists = room.pendingRequests.map(u => u.toString()).includes(userId);
-    if (joinRequestExists) {
-      console.log('Room join request - Join request already exists');
-      return res.status(200).json({ message: 'Join request already sent to the room owner' });
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
     }
-    room.pendingRequests.push(userId);
-    await room.save();
-    console.log('Room join request - Join request sent');
+
+    const isMember = room.users.map(u => u.toString()).includes(userId);
+    const isOwner = room.roomOwner._id.toString() === userId;
+    const isBanned = room.banned.map(u => u.toString()).includes(userId);
     
-    // Notify the room owner about the join request
+    if (isBanned) {
+      return res.status(403).json({ message: 'You are banned from this room' });
+    }
+
+    if (room.isPrivate && !isMember && !isOwner) {
+      const joinRequestExists = room.pendingRequests.map(u => u.toString()).includes(userId);
+      if (joinRequestExists) {
+        return res.status(200).json({ message: 'Join request already sent to the room owner' });
+      }
+      room.pendingRequests.push(userId);
+      await room.save();
+      
+      const user = await User.findById(userId);
+      const username = user ? user.username : 'Unknown user';
+      const message = `${username} wants to join your private room ${room.name}`;
+      await notifyUsers(userId, room.roomOwner, message, roomId);
+      
+      return res.status(201).json({ message: 'Request to join private room sent to the room owner' });
+    }
+
+    if (isMember || isOwner) {
+      return res.status(200).json({ message: 'Already a member of the room' });
+    }
+
+    room.users.push(userId);
+    await room.save();
+    
     const user = await User.findById(userId);
     const username = user ? user.username : 'Unknown user';
-    const message = `${username} wants to join your private room ${room.name}`;
+    const message = `${username} has joined your public room ${room.name}`;
     await notifyUsers(userId, room.roomOwner, message, roomId);
     
-    return res.status(201).json({ message: 'Request to join private room sent to the room owner' });
+    return res.status(201).json({ message: 'Joined room', isOwner, room: { ...room._doc } });
+  } catch (error) {
+    logger.error(`Room join error: ${error.message}`);
+    return res.status(500).json({ message: error.message });
   }
-
-  // If already a member or owner
-  if (isMember || isOwner) {
-    console.log('Room join request - User is already a member or owner');
-    return res.status(200).json({ message: 'Already a member of the room' });
-  }
-
-  // If public and not banned, add user
-  console.log('Room join request - Adding user to public room');
-  room.users.push(userId);
-  await room.save();
-  
-  // Notify the room owner about the new member
-  const user = await User.findById(userId);
-  const username = user ? user.username : 'Unknown user';
-  const message = `${username} has joined your public room ${room.name}`;
-  await notifyUsers(userId, room.roomOwner, message, roomId);
-  
-  console.log('Room join request - User successfully joined room');
-  return res.status(201).json({ message: 'Joined room', isOwner, room: { ...room._doc } });
 });
 
 

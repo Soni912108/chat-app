@@ -251,59 +251,5 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log("Authentication successful, fetching notifications...");
         fetchNotifications();
         initializeSocket(); // Initialize socket connection
-        
-        // Add test button event listeners
-        const testBtn = document.getElementById('test-notification-btn');
-        const debugBtn = document.getElementById('debug-notifications-btn');
-        
-        if (testBtn) {
-            testBtn.addEventListener('click', async () => {
-                try {
-                    console.log('Creating test notification...');
-                    const response = await fetch('/api/notifications/test', {
-                        method: 'POST',
-                        credentials: 'include'
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('Test notification created:', data);
-                        alert('Test notification created! Check the list below.');
-                        // Refresh the notifications list
-                        fetchNotifications();
-                    } else {
-                        const error = await response.json();
-                        alert('Error creating test notification: ' + error.message);
-                    }
-                } catch (error) {
-                    console.error('Error creating test notification:', error);
-                    alert('Error creating test notification: ' + error.message);
-                }
-            });
-        }
-        
-        if (debugBtn) {
-            debugBtn.addEventListener('click', async () => {
-                try {
-                    console.log('Fetching all notifications for debugging...');
-                    const response = await fetch('/api/notifications/debug/all', {
-                        method: 'GET',
-                        credentials: 'include'
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('All notifications:', data);
-                        alert(`Found ${data.count} notifications in database. Check console for details.`);
-                    } else {
-                        const error = await response.json();
-                        alert('Error fetching all notifications: ' + error.message);
-                    }
-                } catch (error) {
-                    console.error('Error fetching all notifications:', error);
-                    alert('Error fetching all notifications: ' + error.message);
-                }
-            });
-        }
     }
 });

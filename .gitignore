@@ -1,3 +1,6 @@
 .env
 /node_modules
-testConn.js
+testMongoConn.js
+testCloudinaryConn.js
+
+uploads/
