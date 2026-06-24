@@ -6,6 +6,7 @@ const router = express.Router();
 const Room = require('../models/Rooms');
 const auth = require('../middleware/auth');
 const Messages = require('../models/Messages');
+const logger = require('../utils/logger');
 
 require('dotenv').config();
 
@@ -40,6 +41,7 @@ router.post('/register', async (req, res) => {
 
     res.status(200).json({ userID: user._id, userName: user.username }); // No token in body
   } catch (error) {
+    logger.warn('routes/auth:register', error.message);
     res.status(400).json({ message: error.message });
   }
 });
@@ -75,6 +77,7 @@ router.post('/login', async (req, res) => {
 
     res.status(200).json({ userID: user._id, userName: user.username }); // No token in body
   } catch (error) {
+    logger.warn('routes/auth:login', error.message);
     res.status(400).json({ message: error.message });
   }
 });
@@ -86,10 +89,10 @@ router.post('/login', async (req, res) => {
 // Route to change password
 router.post('/changePassword', auth, async (req, res) => {
   try {
-    const { userID, oldPassword, newPassword } = req.body;
+    const { oldPassword, newPassword } = req.body;
 
     // Retrieve user from database
-    const user = await User.findById(userID);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -106,7 +109,7 @@ router.post('/changePassword', auth, async (req, res) => {
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
-    console.error('Error in /changePassword:', error);
+    logger.error('routes/auth:changePassword', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -117,6 +120,10 @@ router.post('/changePassword', auth, async (req, res) => {
 router.get('/profileInfo/:userId', auth, async (req, res) => {
   try {
     const userId = req.params.userId;
+
+    if (userId !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
 
     // Retrieve user from database
     const user = await User.findById(userId);
@@ -172,7 +179,7 @@ router.get('/profileInfo/:userId', auth, async (req, res) => {
       recentActivity: recentActivityFormatted,
     });
   } catch (error) {
-    console.error('Error in /profileInfo:', error);
+    logger.error('routes/auth:profileInfo', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -190,7 +197,7 @@ router.post('/logout', (req, res) => {
     
     res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
-    console.error('Error in /logout:', error);
+    logger.error('routes/auth:logout', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -215,7 +222,7 @@ router.get('/verify', auth, async (req, res) => {
       } 
     });
   } catch (error) {
-    console.error('Error in /verify:', error);
+    logger.error('routes/auth:verify', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });

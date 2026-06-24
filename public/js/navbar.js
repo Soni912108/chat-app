@@ -1,7 +1,29 @@
-const userName = sessionStorage.getItem("username"),
-    userId = sessionStorage.getItem("userID"),
-    welcomeUser = document.getElementById("username");
-welcomeUser ? welcomeUser.textContent = "Welcome, " + userName : console.log("Element not found");
+const welcomeUser = document.getElementById("username");
+
+async function loadCurrentUser() {
+    if (!welcomeUser) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/auth/verify', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            welcomeUser.textContent = "";
+            return;
+        }
+
+        const data = await response.json();
+        welcomeUser.textContent = `Welcome, ${data.user.username}`;
+    } catch (error) {
+        welcomeUser.textContent = "";
+    }
+}
+
+loadCurrentUser();
 
 function gotoNotification() {
     window.location.href = "/notification";
@@ -13,33 +35,25 @@ function goToProfile() {
 
 async function logout() {
     try {
-        // Call server logout endpoint to clear cookies
         await fetch('/api/auth/logout', {
             method: 'POST',
             credentials: 'include'
         });
-        
-        // Clear sessionStorage
-        sessionStorage.clear();
-        
-        // Redirect to login
+
         window.location.href = "/login?message=loggedOut";
     } catch (error) {
-        console.error('Error during logout:', error);
-        // Even if server logout fails, clear local storage and redirect
-        sessionStorage.clear();
         window.location.href = "/login?message=loggedOut";
     }
 }
 
 function goBack() {
-    window.location.href = "/dashboard"
+    window.location.href = "/dashboard";
 }
 
 function updateUserProfile() {
-    window.location.href = "/updateUser"
+    window.location.href = "/updateUser";
 }
 
 function goBackToProfile() {
-    window.location.href = "/profile"
+    window.location.href = "/profile";
 }

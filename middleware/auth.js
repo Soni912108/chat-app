@@ -37,8 +37,7 @@ module.exports = (req, res, next) => {
     // Proceed to the next middleware or route handler if no errors
     next();
   } catch (error) {
-    logger.warn(`Auth failed: ${error.message}`);
-    res.status(401).json({ error: 'Unauthorized' }); 
-    res.status(401).json({ error: 'Unauthorized' });
+    logger.warn('middleware/auth', `Auth failed: ${error.message}`);
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 };

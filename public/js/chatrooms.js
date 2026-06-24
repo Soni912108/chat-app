@@ -1,6 +1,7 @@
 const socket = io({ path: '/socket.io' });
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get("roomId");
+let currentUserId = null;
 
 let retryTimeout;
 let retryCount = 0;
@@ -22,7 +23,8 @@ async function checkAuthentication() {
             return false;
         }
         
-        console.log("Authentication successful, loading room");
+        const data = await response.json();
+        currentUserId = data.user.id;
         return true;
     } catch (error) {
         console.error("Error checking authentication:", error);
@@ -53,13 +55,14 @@ async function checkRoomAccess() {
         });
 
         if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
             if (response.status === 404) {
                 console.log("Room not found, redirecting to dashboard");
                 window.location.href = "/dashboard?message=roomNotFound";
                 return false;
             } else if (response.status === 403) {
-                console.log("Access denied to room, redirecting to dashboard");
-                window.location.href = "/dashboard?message=accessDenied";
+                const redirectMessage = errorData.message === "You are banned from this room" ? "userBanned" : "accessDenied";
+                window.location.href = `/dashboard?message=${redirectMessage}`;
                 return false;
             } else {
                 console.log("Unauthorized access, redirecting to login");
@@ -109,6 +112,9 @@ function fetchRoomDetails() {
             document.getElementById("roomTitle").textContent = `Room - ${data.room.name}`;
             document.getElementById("roomName").textContent = `Room - ${data.room.name}`;
             document.getElementById("roomOwner").textContent = `Owner - ${data.room.roomOwner.username}`;
+            const isOwner = data.room.roomOwner._id === currentUserId;
+            document.getElementById("deleteRoom").style.display = isOwner ? "" : "none";
+            document.getElementById("banUser").style.display = isOwner ? "" : "none";
             
             const userList = document.getElementById("userList");
             userList.innerHTML = "";
@@ -142,6 +148,14 @@ function displayMessages() {
         
         if (!response.ok) {
             if (response.status === 404) {
+                return { messageTuples: [] };
+            }
+            if (response.status === 403) {
+                window.location.href = "/dashboard?message=accessDenied";
+                return { messageTuples: [] };
+            }
+            if (response.status === 401) {
+                window.location.href = "/login?message=loggedOut";
                 return { messageTuples: [] };
             }
             throw new Error("Failed to fetch messages");
@@ -198,10 +212,6 @@ function displayMessages() {
     });
 }
 socket.on("connect", async () => {
-    console.log("Connected to server");
-    console.log("Socket ID:", socket.id);
-    console.log("User ID from sessionStorage:", sessionStorage.getItem("userID"));
-    
     // Check authentication first
     const isAuthenticated = await checkAuthentication();
     if (!isAuthenticated) {
@@ -357,12 +367,14 @@ socket.on("updateUserList", (users) => {
     
     if (errorMessage.includes("banned")) {
         console.log("User banned, redirecting to dashboard");
-        window.location.href = "/dashboard";
+        window.location.href = "/dashboard?message=userBanned";
+    } else if (errorMessage.includes("Access denied") || errorMessage.includes("not a member")) {
+        window.location.href = "/dashboard?message=accessDenied";
     }
 }), socket.on("userBanned", (message) => {
     console.log("User banned message received:", message);
     alert(message);
-    window.location.href = "/dashboard";
+    window.location.href = "/dashboard?message=userBanned";
 });
 socket.on("reloadingPage", (users) => {
     console.log("Reloading page with users:", users);
@@ -381,20 +393,14 @@ function sendMessage() {
     const messageText = messageInput.value.trim();
     
     if (messageText) {
-        const userId = sessionStorage.getItem("userID");
         const messagesContainer = document.getElementById("messages");
-        
-        console.log("Sending message with user ID:", userId);
-        console.log("Message content:", messageText);
-        console.log("Room ID:", roomId);
-        
+
         if (messagesContainer && messagesContainer.textContent === "It's empty. Type something here...") {
             messagesContainer.textContent = "";
         }
         
         socket.emit("message", {
             content: messageText,
-            userId: userId,
             roomId: roomId
         });
         

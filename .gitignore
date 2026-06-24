@@ -3,4 +3,4 @@
 testMongoConn.js
 testCloudinaryConn.js
 
-uploads/
+uploads/*

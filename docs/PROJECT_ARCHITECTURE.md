@@ -17,7 +17,6 @@ A real-time chat application built with Node.js, Express.js, Socket.io, MongoDB 
 | Authentication | JWT | ^9.0.2 |
 | Password Hashing | Bcrypt | ^6.0.0 |
 | File Upload | Multer | ^1.4.5-lts.1 |
-| Caching | Redis | ^4.6.14 |
 | Middleware | CORS | ^2.8.5 |
 | Image Storage | Cloudinary | ^2.10.0 |
 
@@ -32,7 +31,6 @@ chat-app/
 ├── testConn.js              # Database connection testing utility
 ├── databases/
 │   ├── mongodbConnection.js  # MongoDB connection setup
-│   └── redisConnection.js    # Redis connection (if needed)
 ├── middleware/
 │   └── auth.js              # JWT authentication middleware
 ├── models/                   # Mongoose schemas
@@ -92,13 +90,13 @@ chat-app/
 │  Socket.io Handlers: joinRoom │ message │ disconnect │ etc  │
 └────────────────────────────┬────────────────────────────────┘
                              │
-          ┌──────────────────┼──────────────────┐
-          │                  │                  │
-    ┌─────▼──────┐    ┌──────▼──────┐    ┌─────▼──────────┐
-    │  MongoDB   │    │    Redis    │    │  Cloudinary    │
-    │ (Mongoose) │    │  (optional) │    │  (Avatars CDN) │
-    │            │    │             │    │                │
-    └────────────┘    └─────────────┘    └────────────────┘
+          ┌──────────────────┴──────────────────┐
+          │                                     │
+    ┌─────▼──────┐                      ┌───────▼────────┐
+    │  MongoDB   │                      │  Cloudinary    │
+    │ (Mongoose) │                      │  (Avatars CDN) │
+    │            │                      │                │
+    └────────────┘                      └────────────────┘
 ```
 
 ---
@@ -322,9 +320,6 @@ PASSWORD=mongodb_password
 DB=database_name
 APP_NAME=app_name
 MONGODB_URI=mongodb+srv://USERNAME_PLACEHOLDER:PASSWORD_PLACEHOLDER@cluster.mongodb.net/DATABASE_PLACEHOLDER?appName=APP_NAME_PLACEHOLDER
-
-# Optional
-REDIS_URL=redis://localhost:6379
 
 # Cloudinary (for avatars)
 CLOUDINARY_CLOUD_NAME=your_cloud_name

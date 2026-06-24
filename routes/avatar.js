@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const User = require('../models/Users');  
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const logger = require('../utils/logger');
 
 require('dotenv').config();
 
@@ -56,7 +57,7 @@ router.post('/uploadAvatar', auth, upload.single('avatar'), async (req, res) => 
             },
             async (error, result) => {
                 if (error) {
-                    console.error('Cloudinary upload error:', error);
+                    logger.error('routes/avatar:uploadCloudinary', error.message);
                     return res.status(500).json({ message: 'Failed to upload avatar' });
                 }
 
@@ -71,7 +72,7 @@ router.post('/uploadAvatar', auth, upload.single('avatar'), async (req, res) => 
                         message: 'Avatar uploaded successfully'
                     });
                 } catch (dbError) {
-                    console.error('Database update error:', dbError);
+                    logger.error('routes/avatar:updateUser', dbError.message);
                     res.status(500).json({ message: 'Avatar uploaded but database update failed' });
                 }
             }
@@ -80,7 +81,7 @@ router.post('/uploadAvatar', auth, upload.single('avatar'), async (req, res) => 
         // Pipe file buffer to upload stream
         uploadStream.end(req.file.buffer);
     } catch (err) {
-        console.error('Avatar upload error:', err);
+        logger.error('routes/avatar:upload', err.message);
         res.status(500).json({ message: 'Server error during avatar upload' });
     }
 });

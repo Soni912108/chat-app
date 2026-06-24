@@ -16,10 +16,7 @@ function login() {
    }).then(e => (n.style.display = "none", e.ok ? e.json() : e.json().then(e => {
       throw new Error(e.message)
    }))).then(e => {
-      if (!(e.userID && e.userName)) throw new Error("Invalid response format");
-      // Only store user info, NOT the token
-      sessionStorage.setItem("userID", e.userID);
-      sessionStorage.setItem("username", e.userName);
+      if (!e.userName) throw new Error("Invalid response format");
       window.location.href = "/dashboard";
    }).catch(e => {
       "Failed to fetch" === e.message ? s.textContent = "Failed to login. Please try again later." : s.textContent = e.message, s.style.display = "block", n.style.display = "none"
@@ -46,10 +43,7 @@ function register() {
    }).then(e => (o.style.display = "none", e.ok ? e.json() : e.json().then(e => {
       throw new Error(e.message)
    }))).then(e => {
-      if (!(e.userID && e.userName)) throw new Error("Invalid response format");
-      // Only store user info, NOT the token
-      sessionStorage.setItem("userID", e.userID);
-      sessionStorage.setItem("username", e.userName);
+      if (!e.userName) throw new Error("Invalid response format");
       window.location.href = "/dashboard";
    }).catch(e => {
       "Failed to fetch" === e.message ? n.textContent = "Failed to register. Please try again later." : n.textContent = e.message, n.style.display = "block", o.style.display = "none"

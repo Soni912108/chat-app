@@ -1,6 +1,6 @@
 # Chat App
 
-This is a Chat Application platform, built using Node.js, Express.js, MongoDB, and Redis for the Backend, and JavaScript, HTML, and CSS for the Frontend. It is a full-stack app that provides options to chat in private/public rooms created by users, the ability to customize your profile, upload profile photos, and more.
+This is a Chat Application platform, built using Node.js, Express.js, MongoDB, Socket.io, JavaScript, HTML, and CSS. It is a full-stack app that provides options to chat in private/public rooms created by users, the ability to customize your profile, upload profile photos, and more.
 
 Check out the live demo of the application [here](https://chatapp2.azurewebsites.net/).
 
@@ -47,17 +47,12 @@ Check out the live demo of the application [here](https://chatapp2.azurewebsites
   - Secure password storage with bcrypt.
   - Data validation and sanitization.
 
-- **Scalability**
-  - Horizontal scaling using Redis for session management and message queueing.
-  - Optimized for performance and scalability.
-
 ## Prerequisites
 
 Before you begin, ensure you have met the following requirements:
 
 - Node.js and npm installed on your machine
 - A MongoDB database (local or Atlas)
-- A Redis instance (local or cloud-based)
 
 ## Installation
 
@@ -75,16 +70,11 @@ Before you begin, ensure you have met the following requirements:
 
 1.Create a .env file in the root directory of your project and add the following variables:
 
-    
-    REDIS_PASSWORD=your_redis_password
-    REDIS_HOST = your_redis_host
-    REDIS_PORT = your_redis_port
-    
     PASSWORD=your_mongodb_password
     JWT_SECRET=your_jwt_secret
     PORT=your_local_port_number
 
-Replace your_mongodb_uri, your_redis_url, your_jwt_secret, and your_port_number with your actual MongoDB URI, Redis URL, JWT secret, and desired port number.
+Replace your_mongodb_uri, your_jwt_secret, and your_port_number with your actual MongoDB URI, JWT secret, and desired port number.
 
 
 ## Usage

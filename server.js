@@ -11,6 +11,7 @@ const messagesRoutes = require('./routes/messages');
 const settingsRoutes = require('./routes/settings');
 const notificationRoutes = require('./routes/notifications');
 const { setupSocketHandlers } = require('./socket');
+const logger = require('./utils/logger');
 
 require('dotenv').config();
 const cors = require('cors'); // Import CORS middleware
@@ -39,7 +40,7 @@ app.get('/dashboard', (req, res) => {
   try {
         res.sendFile(path.join(__dirname, 'public', 'templates', 'dashboard.html'));
     } catch (error) {
-        console.error('Error serving dashboard:', error);
+        logger.error('server/dashboard', error.message);
         res.status(500).send('Error loading dashboard');
     }
 });
@@ -96,32 +97,12 @@ app.use((err, req, res, next) => {
 
 app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
 
-// Connect to Redis
-// const redisClient = connectToRedis();
-
-// redisClient.connect()
-//   .then(() => console.log('Connected to Redis, server.js file'))
-//   .catch((err) => console.error('Redis connection error:', err));
-
-// // Handle process exit and cleanup
-// process.on('exit', () => {
-//   redisClient.quit();
-// });
-
-// process.on('SIGINT', () => {
-//   redisClient.quit(() => {
-//     console.log('Redis client closed due to app termination');
-//     process.exit(0);
-//   });
-// });
-
 // Connect to MongoDB
 connectToMongoDB();
 
 // Server listen logic
 server.listen(PORT, () => {
-  console.info(`Server is running on port ${PORT}`);
-  // messagesRoutes(app, redisClient);
+  logger.info('server/listen', `Server is running on port ${PORT}`);
 });
 
 // Routes

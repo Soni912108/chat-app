@@ -1,4 +1,6 @@
 // Check if user is authenticated before loading profile content
+let currentUserId = null;
+
 async function checkAuthentication() {
     try {
         console.log("Checking authentication status...");
@@ -14,7 +16,8 @@ async function checkAuthentication() {
             return false;
         }
         
-        console.log("Authentication successful, loading profile");
+        const data = await response.json();
+        currentUserId = data.user.id;
         return true;
     } catch (error) {
         console.error("Error checking authentication:", error);
@@ -24,7 +27,11 @@ async function checkAuthentication() {
 }
 
 async function fetchProfileInfo() {
-    const a = sessionStorage.getItem("userID");
+    const a = currentUserId;
+    if (!a) {
+        window.location.href = '/login?message=loggedOut';
+        return;
+    }
     try {
         const b = await fetch(`/api/auth/profileInfo/${a}`, {
             method: "GET",
@@ -75,14 +82,20 @@ function joinRoom(a) {
         },
         credentials: "include" // Send cookies for authentication
     }).then(a => a.json()).then(b => {
-        b.message ? "You are banned from this room" === b.message ? displayError("You are banned from this room") : (window.location.href = `/room?roomId=${a}`, b.isOwner ? sessionStorage.setItem("isOwner", "True") : sessionStorage.setItem("isOwner", "False")) : displayError("Error joining room: " + b.message)
+        b.message ? "You are banned from this room" === b.message ? displayError("You are banned from this room") : window.location.href = `/room?roomId=${a}` : displayError("Error joining room: " + b.message)
     }).catch(a => {
         console.error("Error:", a), displayError("Error joining room")
     })
 }
 
+function displayError(message) {
+    alert(message);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-    checkAuthentication().then(() => {
-        fetchProfileInfo()
+    checkAuthentication().then((isAuthenticated) => {
+        if (isAuthenticated) {
+            fetchProfileInfo()
+        }
     });
 });

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 require('dotenv').config();
 
 const connectToMongoDB = async () => {
@@ -32,10 +33,10 @@ const connectToMongoDB = async () => {
       socketTimeoutMS: 45000, // Close idle sockets
       family: 4, // Force IPv4 to avoid some DNS issues
     }).then(() => {
-      console.log('MongoDB connection successful');
+      logger.info('db/mongo', 'MongoDB connection successful');
     })
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    logger.error('db/mongo', error.message);
   }
 };
 

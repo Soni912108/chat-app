@@ -40,7 +40,6 @@ function initializePage() {
                 },
                 credentials: "include", // Send cookies for authentication
                 body: JSON.stringify({
-                    userID: sessionStorage.getItem("userID"),
                     oldPassword: b,
                     newPassword: c
                 })
@@ -74,6 +73,9 @@ function initializePage() {
 
 // Call the authentication check and page initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    await checkAuthentication();
+    const isAuthenticated = await checkAuthentication();
+    if (!isAuthenticated) {
+        return;
+    }
     initializePage();
 });

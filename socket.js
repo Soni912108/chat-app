@@ -7,9 +7,12 @@ const Message = require('./models/Messages');
 const User = require('./models/Users');
 const notifyUsers = require('./utils/notificationFunction');
 const logger = require('./utils/logger');
+const { setIo } = require('./utils/socketState');
+const { getRoomAccess } = require('./utils/roomAccess');
 
 function setupSocketHandlers(server) {
   const io = socketIo(server, { path: '/socket.io' });
+  setIo(io);
 
   io.on('connection', (socket) => {
     let userId = null;
@@ -27,7 +30,7 @@ function setupSocketHandlers(server) {
         return;
       }
     } catch (err) {
-      logger.warn(`Socket auth failed: ${err.message}`);
+      logger.warn('socket/connection', `Socket auth failed: ${err.message}`);
       socket.emit('error', 'Authentication failed');
       socket.disconnect();
       return;
@@ -38,6 +41,10 @@ function setupSocketHandlers(server) {
       return;
     }
 
+    // A Socket.io room named by userId lets routes/utilities target one user
+    // for notifications regardless of which page that user currently has open.
+    socket.join(userId.toString());
+
     // Join room logic
     socket.on('joinRoom', async ({ roomId }) => {
       try {
@@ -46,23 +53,22 @@ function setupSocketHandlers(server) {
           socket.emit('error', 'Room not found');
           return;
         }
-        
-        const isMember = room.users.map(u => u.toString()).includes(userId);
-        const isBanned = room.banned.map(u => u.toString()).includes(userId);
+
+        const { isMember, isBanned } = getRoomAccess(room, userId);
 
         if (isBanned) {
           socket.emit('error', 'You are banned from this room');
           return;
         }
-        if (room.isPrivate && !isMember) {
+        if (!isMember) {
           socket.emit('error', 'Access denied');
           return;
         }
 
         socket.join(roomId);
-        logger.info(`User ${userId} joined room ${roomId}`);
+        logger.debug('socket/joinRoom', `User ${userId} joined room ${roomId}`);
       } catch (err) {
-        logger.error(`Socket joinRoom error: ${err.message}`);
+        logger.error('socket/joinRoom', err.message);
         socket.emit('error', 'Failed to join room');
       }
     });
@@ -79,9 +85,14 @@ function setupSocketHandlers(server) {
         if (!room) {
           return;
         }
-        const isBanned = room.banned.includes(userId);
+        const { isMember, isBanned } = getRoomAccess(room, userId);
+
         if (isBanned) {
           socket.emit('error', 'You are banned from this room');
+          return;
+        }
+        if (!isMember) {
+          socket.emit('error', 'You are not a member of this room');
           return;
         }
         
@@ -91,7 +102,7 @@ function setupSocketHandlers(server) {
         const user = await User.findById(userId);
         const username = user ? user.username : 'Unknown user';
         
-        io.to(roomId).emit('message', { content, user: username, roomId });
+        io.to(roomId).emit('message', { content, user: username, roomId, timestamp: newMessage.timestamp });
         
         const messageNotification = `New message in ${room.name} by ${username}: ${content}`;
         const usersToNotify = room.users.filter(user => user.toString() !== userId);
@@ -100,20 +111,19 @@ function setupSocketHandlers(server) {
           await notifyUsers(userId, user, messageNotification, roomId);
         }
       } catch (error) {
-        logger.error(`Socket message error: ${error.message}`);
+        logger.error('socket/message', error.message);
       }
     });
 
-    socket.on('banUser', (roomId, username) => {
-      io.to(roomId).emit('userBanned', username);
-    });
-
     socket.on('typing', (roomId) => {
+      if (!socket.rooms.has(roomId)) {
+        return;
+      }
       socket.to(roomId).emit('typing');
     });
 
     socket.on('disconnect', async () => {
-      console.log('user disconnected');
+      logger.debug('socket/disconnect', `User ${userId} disconnected`);
     });
   });
 }

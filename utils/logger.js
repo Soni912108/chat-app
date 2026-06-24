@@ -1,34 +1,37 @@
 // utils/logger.js
 const LOG_LEVELS = {
-  ERROR: 0,
+  ERR: 0,
   WARN: 1,
   INFO: 2,
   DEBUG: 3
 };
 
-const currentLevel = LOG_LEVELS[process.env.LOG_LEVEL || 'INFO'];
+const configuredLevel = (process.env.LOG_LEVEL || 'INFO').toUpperCase();
+const normalizedLevel = configuredLevel === 'ERROR' ? 'ERR' : configuredLevel;
+const currentLevel = LOG_LEVELS[normalizedLevel] ?? LOG_LEVELS.INFO;
 
-const logger = {
-  error: (msg) => {
-    if (currentLevel >= LOG_LEVELS.ERROR) {
-      console.error(msg);
-    }
-  },
-  warn: (msg) => {
-    if (currentLevel >= LOG_LEVELS.WARN) {
-      console.warn(msg);
-    }
-  },
-  info: (msg) => {
-    if (currentLevel >= LOG_LEVELS.INFO) {
-      console.log(msg);
-    }
-  },
-  debug: (msg) => {
-    if (currentLevel >= LOG_LEVELS.DEBUG) {
-      console.log('[DEBUG]', msg);
-    }
+function formatMessage(level, source, message) {
+  return `${new Date().toISOString()} - ${source} - ${level} - ${message}`;
+}
+
+function write(level, source, message) {
+  if (currentLevel < LOG_LEVELS[level]) {
+    return;
   }
-};
 
-module.exports = logger;
+  const line = formatMessage(level, source, message);
+  if (level === 'ERR') {
+    console.error(line);
+  } else if (level === 'WARN') {
+    console.warn(line);
+  } else {
+    console.log(line);
+  }
+}
+
+module.exports = {
+  error: (source, message) => write('ERR', source, message),
+  warn: (source, message) => write('WARN', source, message),
+  info: (source, message) => write('INFO', source, message),
+  debug: (source, message) => write('DEBUG', source, message),
+};

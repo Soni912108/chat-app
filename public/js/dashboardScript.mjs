@@ -55,8 +55,6 @@ function updateNotificationCount(count) {
 
 function loadRooms() {
     const spinnerEl = document.getElementById("lds-ellipsis");
-    console.log("Loading rooms...");
-    console.log("User ID from sessionStorage:", userId);
     spinnerEl.style.display = "block";
 
     fetch("/api/rooms", {
@@ -94,21 +92,15 @@ function loadRooms() {
             li.textContent = `${room.name} - ${roomType} - `;
             
             console.log("Room:", room.name);
-            console.log("Room banned users:", room.banned);
-            console.log("Current user ID:", userId);
-            
-            // Convert user ID to string for comparison
-            const userIdStr = userId.toString();
-            const bannedUserIds = room.banned.map(id => id.toString());
-            const isBanned = bannedUserIds.includes(userIdStr);
+            const isBanned = room.isBanned;
             
             console.log("Is user banned:", isBanned);
             
-            if (isBanned) {
-                li.innerHTML += "<span style='font-weight: bold; color: red;'>Banned from this Room</span>";
-            } else {
-                li.innerHTML += "<span style='font-weight: bold; color: green;'>Join this Room</span>";
-            }
+            const status = document.createElement("span");
+            status.style.fontWeight = "bold";
+            status.style.color = isBanned ? "red" : "green";
+            status.textContent = isBanned ? "Banned from this Room" : "Join this Room";
+            li.appendChild(status);
             
             li.onclick = () => {
                 console.log("Joining room:", room._id);
@@ -201,7 +193,6 @@ function handleJoinResponse(a, b) {
             break;
         case "Joined room":
             window.location.href = `/room?roomId=${b}`;
-            sessionStorage.setItem("isOwner", a.isOwner ? "True" : "False");
             break;
         case "Already a member of the room":
             window.location.href = `/room?roomId=${b}`;

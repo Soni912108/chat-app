@@ -6,19 +6,34 @@ const router = express.Router();
 const Message = require('../models/Messages');
 const User = require('../models/Users');
 const logger = require('../utils/logger');
-const { io } = require('../socket');
+const { getIo } = require('../utils/socketState');
+const { getRoomAccess, objectIdListIncludes } = require('../utils/roomAccess');
 
 const notifyUsers = require('../utils/notificationFunction');
 
 // Fetch all rooms
 router.get('/', auth, async (req, res) => {
   try {
-    const rooms = await Room.find().populate('roomOwner', 'username')
-                           .populate('users', 'username');
+    const rooms = await Room.find()
+      .populate('roomOwner', 'username')
+      .select('name roomOwner users banned isPrivate pendingRequests createdAt updatedAt')
+      .lean();
+
+    const safeRooms = rooms.map(room => ({
+      _id: room._id,
+      name: room.name,
+      roomOwner: room.roomOwner,
+      isPrivate: room.isPrivate,
+      isMember: objectIdListIncludes(room.users, req.user.id),
+      isBanned: objectIdListIncludes(room.banned, req.user.id),
+      hasPendingRequest: objectIdListIncludes(room.pendingRequests || [], req.user.id),
+      createdAt: room.createdAt,
+      updatedAt: room.updatedAt,
+    }));
     
-    res.json({ rooms });
+    res.json({ rooms: safeRooms });
   } catch (error) {
-    logger.error(`Error fetching rooms: ${error.message}`);
+    logger.error('routes/rooms:list', error.message);
     res.status(500).json({ 
       message: error.message,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
@@ -35,8 +50,11 @@ router.get('/:roomId', auth, async (req, res) => {
     const room = await Room.findById(roomId).populate('roomOwner', 'username').populate('users', 'username');
     if (!room) return res.status(404).json({ message: 'Room not found' });
 
-    const isMember = room.users.map(u => u._id.toString()).includes(userId);
-    if (room.isPrivate && !isMember) {
+    const { isMember, isBanned } = getRoomAccess(room, userId);
+    if (isBanned) {
+      return res.status(403).json({ message: 'You are banned from this room' });
+    }
+    if (!isMember) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -78,6 +96,7 @@ router.delete('/:roomId/:username', auth, async (req, res) => {
     await Message.deleteMany({ room: roomId, user: userToRemove._id });
 
     // Notify the banned user via socket
+    const io = getIo();
     io.to(userToRemove._id.toString()).emit('userBanned', 'You have been banned from the room. Redirecting to dashboard.');
     
     // Also create a notification record for the banned user
@@ -86,7 +105,7 @@ router.delete('/:roomId/:username', auth, async (req, res) => {
 
     res.status(200).json({ message: 'User banned and messages deleted successfully' });
   } catch (error) {
-    console.error('Error banning user and deleting messages:', error);
+    logger.error('routes/rooms:banUser', error.message);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
@@ -120,21 +139,16 @@ router.delete('/:roomId', auth, async (req, res) => {
 
     res.json({ message: 'Room and associated messages deleted successfully' });
   } catch (error) {
-    console.error('Error deleting room and messages:', error);
+    logger.error('routes/rooms:delete', error.message);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
 
 
 router.post('/create',auth, async (req, res) => {
-  console.log('Room creation request - Body:', req.body);
-  console.log('Room creation request - User ID:', req.user.id);
-  
   const { name, private: isPrivate } = req.body; //isPrivate must be a boolean value
   
   try {
-    console.log('Room creation - Creating room with name:', name, 'isPrivate:', isPrivate);
-    
     const room = new Room({ 
       name, 
       users: [req.user.id], 
@@ -143,10 +157,11 @@ router.post('/create',auth, async (req, res) => {
     });
     
     await room.save();
+    logger.info('routes/rooms:create', `Room ${room._id} created by user ${req.user.id}`);
     
     res.status(201).json({ message: 'Room created successfully', room });
   } catch (error) {
-    logger.error(`Room creation error: ${error.message}`);
+    logger.error('routes/rooms:create', error.message);
     res.status(400).json({ message: error.message });
   }
 });
@@ -163,16 +178,14 @@ router.post('/:roomId/join', auth, async (req, res) => {
       return res.status(404).json({ message: 'Room not found' });
     }
 
-    const isMember = room.users.map(u => u.toString()).includes(userId);
-    const isOwner = room.roomOwner._id.toString() === userId;
-    const isBanned = room.banned.map(u => u.toString()).includes(userId);
+    const { isMember, isOwner, isBanned } = getRoomAccess(room, userId);
     
     if (isBanned) {
       return res.status(403).json({ message: 'You are banned from this room' });
     }
 
     if (room.isPrivate && !isMember && !isOwner) {
-      const joinRequestExists = room.pendingRequests.map(u => u.toString()).includes(userId);
+      const joinRequestExists = objectIdListIncludes(room.pendingRequests, userId);
       if (joinRequestExists) {
         return res.status(200).json({ message: 'Join request already sent to the room owner' });
       }
@@ -201,7 +214,7 @@ router.post('/:roomId/join', auth, async (req, res) => {
     
     return res.status(201).json({ message: 'Joined room', isOwner, room: { ...room._doc } });
   } catch (error) {
-    logger.error(`Room join error: ${error.message}`);
+    logger.error('routes/rooms:join', error.message);
     return res.status(500).json({ message: error.message });
   }
 });
@@ -219,7 +232,7 @@ router.post('/:roomId/:userId/accept', auth, async (req, res) => {
     const isOwner = req.user.id.toString() === room.roomOwner.toString();
     if (!isOwner) return res.status(403).json({ message: 'Only the room owner can accept join requests' });
 
-    if (room.pendingRequests.includes(userId)) {
+    if (objectIdListIncludes(room.pendingRequests, userId)) {
       room.users.push(userId);
       room.pendingRequests = room.pendingRequests.filter(id => id.toString() !== userId.toString());
       await room.save();
@@ -233,7 +246,7 @@ router.post('/:roomId/:userId/accept', auth, async (req, res) => {
       return res.status(400).json({ message: 'No pending request found for this user' });
     }
   } catch (error) {
-    console.error('Error accepting join request:', error);
+    logger.error('routes/rooms:accept', error.message);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
