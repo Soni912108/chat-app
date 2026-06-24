@@ -8,6 +8,9 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   lastLogin : { type: Date, required: true},
   avatar: { type: String }, // Add this line to store the avatar URL
+  settings: {
+    theme: { type: String, enum: ['light', 'dark'], default: 'light' }
+  },
 }, { timestamps: true });
 ;
 

@@ -1,35 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/public/css/style.css">
-    <script src="/socket.io/socket.io.js"></script>
-    <script defer src="/public/js/navbar.js"></script>
-    <script defer src="/public/js/notifications.js"></script>
-    <title>Notifications</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/public/css/style.css">
+  <script src="/socket.io/socket.io.js"></script>
+  <script defer src="/public/js/uiFeedback.js"></script>
+  <script defer src="/public/js/navbar.js"></script>
+  <script defer src="/public/js/notifications.js"></script>
+  <title>Notifications</title>
 </head>
-<body>
-    <nav class="profile-nav">
-        <div class="nav-left-buttons">
-            <button class="nav-button" onclick="goBack()">Back to Dashboard</button>
-            <button class="nav-button" onclick="logout()" id="logout">Logout</button>
-            
-        </div>
-        <div class="nav-right-buttons">
-            <button class="nav-button room-action-button" onclick="updateUserProfile()">Update Profile</button>
-            <button onclick="goToProfile()"  class="nav-button room-action-button">Your Profile</button>
-        </div>
-    </nav>
-    
-    <div class="notifications-container">
-        <p class="dashboard-error" id="error"></p>
-        <h2>Notifications</h2>
-        <div id="status" style="margin: 10px; padding: 10px; background-color: #f0f0f0; border: 1px solid #ccc;">
-            <strong>Status:</strong> <span id="status-text">Loading...</span>
-        </div>
-        <ul id="notifications-list"></ul>
+<body class="app-page">
+  <nav class="profile-nav app-nav">
+    <a class="brand-mark" href="/dashboard">Chat App</a>
+    <div class="app-nav-links">
+      <button onclick="goBack()" class="nav-button">Dashboard</button>
+      <button onclick="gotoNotification()" id="notification" class="nav-button">Notifications</button>
+      <button onclick="goToProfile()" id="profile" class="nav-button">Profile</button>
     </div>
-    
+    <div class="app-user-menu">
+      <button class="user-menu-trigger" id="username"></button>
+      <div class="user-menu-panel">
+        <button onclick="updateUserProfile()" class="nav-button">Update Profile</button>
+        <button class="logout-button" onclick="logout()" id="logout">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="notifications-container">
+    <section class="page-heading">
+      <p class="eyebrow">Inbox</p>
+      <h1>Notifications</h1>
+    </section>
+    <p class="dashboard-error" id="error"></p>
+    <div id="status" class="status-bar">
+      <strong>Status:</strong> <span id="status-text">Loading...</span>
+    </div>
+    <ul id="notifications-list"></ul>
+  </main>
 </body>
 </html>

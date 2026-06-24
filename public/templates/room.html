@@ -1,44 +1,64 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="roomTitle"></title>
-    <link rel="stylesheet" type="text/css" href="/public/css/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="roomTitle">Room</title>
+  <link rel="stylesheet" type="text/css" href="/public/css/style.css">
+  <script defer src="/public/js/uiFeedback.js"></script>
+  <script defer src="/public/js/navbar.js"></script>
 </head>
-<body>
-  <nav class="chat-nav">
-      <div class="nav-left">
-          <button onclick="goBack()" class="nav-button">Back to Dashboard</button>
-          <button onclick="logout()" class="nav-button">Logout</button>
+<body class="chat-page">
+  <nav class="chat-nav app-nav">
+    <a class="brand-mark" href="/dashboard">Chat App</a>
+    <div class="app-nav-links">
+      <button onclick="goBack()" class="nav-button">Dashboard</button>
+      <button onclick="gotoNotification()" id="notification" class="nav-button">Notifications</button>
+      <button onclick="goToProfile()" id="profile" class="nav-button">Profile</button>
+    </div>
+    <div class="app-user-menu">
+      <button class="user-menu-trigger" id="username"></button>
+      <div class="user-menu-panel">
+        <button onclick="updateUserProfile()" class="nav-button">Update Profile</button>
+        <button class="logout-button" onclick="logout()" id="logout">Logout</button>
       </div>
-      <div class="nav-right">
-          <button onclick="deleteRoom()" id="deleteRoom" class="nav-button room-action-button">Delete this room</button>
-          <button onclick="banUser()" id="banUser" class="nav-button room-action-button">Ban a User</button>
-      </div>
+    </div>
   </nav>
-  
-  <div id="chat-room" class="chat-room">
-    <p class="dashboard-error" id="error"></p>
-    <h2 id="roomName" class="room-name"></h2>
-    <h2 id="roomOwner" class="room-owner"></h2>
-    <ul id="userList" class="user-list">Fetching Users of this room...</ul>
-    <div id="messages-container" class="messages-container">
-      <ul id="messages" class="messages"></ul>
-    </div>
-    <p id="typingIndicator" class="typing-indicator"></p>
-  
-    <div class="message-input-container">
-      <input id="messageInput" autocomplete="off" class="message-input" placeholder="Type a message" />
-      <button onclick="sendMessage()" class="send-button">Send</button>
-    </div>
-  </div>
-  
-  
 
-<script src="/socket.io/socket.io.js"></script>
-<script defer src="/public/js/chatrooms.js"></script>
-<script>
+  <main id="chat-room" class="chat-room">
+    <section class="chat-sidebar">
+      <p class="eyebrow">Current room</p>
+      <h1 id="roomName" class="room-name"></h1>
+      <p id="roomOwner" class="room-owner"></p>
+      <details class="room-settings">
+        <summary>Room Settings</summary>
+        <div class="room-settings-actions">
+          <button onclick="banUser()" id="banUser" class="nav-button danger-button">Ban user</button>
+          <button onclick="deleteRoom()" id="deleteRoom" class="nav-button danger-button">Delete room</button>
+          <button class="nav-button" disabled>Rename room</button>
+          <button class="nav-button" disabled>Transfer owner</button>
+        </div>
+      </details>
+      <h2>Members</h2>
+      <ul id="userList" class="user-list">Fetching users...</ul>
+    </section>
+
+    <section class="chat-panel">
+      <p class="dashboard-error" id="error"></p>
+      <div id="messages-container" class="messages-container">
+        <ul id="messages" class="messages"></ul>
+      </div>
+      <p id="typingIndicator" class="typing-indicator"></p>
+      <div class="message-input-container">
+        <input id="messageInput" autocomplete="off" class="message-input" placeholder="Type a message">
+        <button onclick="sendMessage()" class="send-button">Send</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script defer src="/public/js/chatrooms.js"></script>
+  <script>
     const messageInput = document.getElementById('messageInput');
 
     messageInput.addEventListener('keydown', (event) => {
@@ -48,25 +68,32 @@
     });
 
     function goBack(){
-      window.location.href = '/dashboard'; // Redirect to the dashboard.html page
+      window.location.href = '/dashboard';
+    }
+
+    function gotoNotification() {
+      window.location.href = '/notification';
+    }
+
+    function goToProfile() {
+      window.location.href = '/profile';
+    }
+
+    function updateUserProfile() {
+      window.location.href = '/updateUser';
     }
 
     async function logout() {
       try {
-        // Call server logout endpoint to clear cookies
         await fetch('/api/auth/logout', {
           method: 'POST',
           credentials: 'include'
         });
-        
-        // Redirect to login
         window.location.href = '/login?message=loggedOut';
       } catch (error) {
-        console.error('Error during logout:', error);
         window.location.href = '/login?message=loggedOut';
       }
     }
-</script>
-
+  </script>
 </body>
 </html>

@@ -1,5 +1,34 @@
 const welcomeUser = document.getElementById("username");
 
+function applyTheme(settings) {
+    if (settings && settings.theme === 'dark') {
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+    } else {
+        document.body.classList.add('light-theme');
+        document.body.classList.remove('dark-theme');
+    }
+}
+
+async function loadTheme() {
+    try {
+        const response = await fetch('/api/user/settings', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            applyTheme({ theme: 'light' });
+            return;
+        }
+
+        const data = await response.json();
+        applyTheme(data.settings || { theme: 'light' });
+    } catch (error) {
+        applyTheme({ theme: 'light' });
+    }
+}
+
 async function loadCurrentUser() {
     if (!welcomeUser) {
         return;
@@ -18,11 +47,13 @@ async function loadCurrentUser() {
 
         const data = await response.json();
         welcomeUser.textContent = `Welcome, ${data.user.username}`;
+        welcomeUser.title = "Account menu";
     } catch (error) {
         welcomeUser.textContent = "";
     }
 }
 
+loadTheme();
 loadCurrentUser();
 
 function gotoNotification() {

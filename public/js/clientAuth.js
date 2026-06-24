@@ -1,8 +1,7 @@
 function login() {
    var e = document.getElementById("username").value,
       t = document.getElementById("password").value;
-   const s = document.getElementById("errorMessage"),
-      n = document.querySelector(".lds-spinner");
+   const n = document.querySelector(".lds-spinner");
    n.style.display = "block", fetch("/api/auth/login", {
       method: "POST",
       headers: {
@@ -19,7 +18,8 @@ function login() {
       if (!e.userName) throw new Error("Invalid response format");
       window.location.href = "/dashboard";
    }).catch(e => {
-      "Failed to fetch" === e.message ? s.textContent = "Failed to login. Please try again later." : s.textContent = e.message, s.style.display = "block", n.style.display = "none"
+      showToast("Failed to fetch" === e.message ? "Failed to login. Please try again later." : e.message, "error");
+      n.style.display = "none";
    })
 }
 
@@ -27,8 +27,7 @@ function register() {
    var e = document.getElementById("email").value,
       t = document.getElementById("username").value,
       s = document.getElementById("password").value;
-   const n = document.getElementById("errorMessage"),
-      o = document.querySelector(".lds-spinner");
+   const o = document.querySelector(".lds-spinner");
    o.style.display = "block", fetch("/api/auth/register", {
       method: "POST",
       headers: {
@@ -46,6 +45,7 @@ function register() {
       if (!e.userName) throw new Error("Invalid response format");
       window.location.href = "/dashboard";
    }).catch(e => {
-      "Failed to fetch" === e.message ? n.textContent = "Failed to register. Please try again later." : n.textContent = e.message, n.style.display = "block", o.style.display = "none"
+      showToast("Failed to fetch" === e.message ? "Failed to register. Please try again later." : e.message, "error");
+      o.style.display = "none";
    })
 }

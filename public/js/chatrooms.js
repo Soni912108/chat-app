@@ -363,7 +363,7 @@ socket.on("updateUserList", (users) => {
     });
 }), socket.on("error", (errorMessage) => {
     console.error("Socket error received:", errorMessage);
-    alert(errorMessage);
+    showToast(errorMessage, "error");
     
     if (errorMessage.includes("banned")) {
         console.log("User banned, redirecting to dashboard");
@@ -373,7 +373,7 @@ socket.on("updateUserList", (users) => {
     }
 }), socket.on("userBanned", (message) => {
     console.log("User banned message received:", message);
-    alert(message);
+    showToast(message, "error");
     window.location.href = "/dashboard?message=userBanned";
 });
 socket.on("reloadingPage", (users) => {
@@ -439,7 +439,7 @@ async function deleteRoom() {
         console.log("Delete room response:", data);
         
         if (data.message === "Room and associated messages deleted successfully") {
-            alert("Room deleted successfully!");
+            showToast("Room deleted successfully", "success");
             window.location.href = "/dashboard";
         } else {
             displayError(data.message);
@@ -451,15 +451,7 @@ async function deleteRoom() {
 }
 
 function displayError(errorMessage) {
-    console.log("Displaying error:", errorMessage);
-    
-    const errorElement = document.getElementById("error");
-    errorElement.textContent = errorMessage;
-    errorElement.style.display = "block";
-    
-    setTimeout(() => {
-        errorElement.style.display = "none";
-    }, 5000);
+    showToast(errorMessage, "error");
 }
 
 function banUser(username) {
@@ -490,7 +482,7 @@ function banUser(username) {
             console.log("Ban user response:", { status, body });
             
             if (status === 200) {
-                alert(body.message);
+                showToast(body.message, "success");
                 displayMessages();
                 socket.emit("joinRoom", { roomId });
             } else if (status === 403) {
@@ -510,8 +502,14 @@ function banUser(username) {
         displayError("User not found in the list");
     }
 }
-document.getElementById("deleteRoom").onclick = function() {
-    const confirmation = prompt("Type 'Delete this room' if you want to delete this room:");
+document.getElementById("deleteRoom").onclick = async function() {
+    const confirmation = await promptDialog({
+        title: "Delete room",
+        message: "Type Delete this room to confirm. This removes the room and its messages.",
+        placeholder: "Delete this room",
+        confirmText: "Delete",
+        danger: true
+    });
     if (confirmation === "Delete this room") {
         console.log("Room deletion confirmed");
         deleteRoom();
@@ -521,8 +519,14 @@ document.getElementById("deleteRoom").onclick = function() {
     }
 };
 
-document.getElementById("banUser").onclick = function() {
-    const username = prompt("Enter the username to ban:");
+document.getElementById("banUser").onclick = async function() {
+    const username = await promptDialog({
+        title: "Ban user",
+        message: "Enter the exact username to remove and ban from this room.",
+        placeholder: "Username",
+        confirmText: "Ban user",
+        danger: true
+    });
     if (username) {
         console.log("Banning user:", username);
         banUser(username);

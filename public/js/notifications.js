@@ -234,14 +234,7 @@ async function handleRoomRequestNotification(senderId, roomId, notificationId) {
 }
 
 function displayError(message) {
-    const errorElement = document.getElementById("error");
-    if (errorElement) {
-        errorElement.textContent = message;
-        errorElement.style.display = "block";
-        setTimeout(() => {
-            errorElement.style.display = "none";
-        }, 5000);
-    }
+    showToast(message, "error");
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

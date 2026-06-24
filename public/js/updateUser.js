@@ -31,7 +31,11 @@ function initializePage() {
         c = document.getElementById("new-password").value,
         d = document.getElementById("repeat-password").value,
         e = document.getElementById("error-message");
-    if (e.textContent = "", c !== d) return void(e.textContent = "New passwords do not match");
+    e.textContent = "";
+    if (c !== d) {
+        showToast("New passwords do not match", "error");
+        return;
+    }
     try {
         const a = await fetch("/api/auth/changePassword", {
                 method: "POST",
@@ -45,9 +49,15 @@ function initializePage() {
                 })
             }),
             d = await a.json();
-        a.ok ? window.location.href = "/profile" : e.textContent = d.message || "Error changing password. Please try again."
+        if (a.ok) {
+            showToast("Password changed successfully", "success");
+            window.location.href = "/profile";
+        } else {
+            showToast(d.message || "Error changing password. Please try again.", "error");
+        }
     } catch (a) {
-        console.error("Error changing password:", a), e.textContent = "Error changing password. Please try again."
+        console.error("Error changing password:", a);
+        showToast("Error changing password. Please try again.", "error");
     }
 }), document.getElementById("avatar-upload-form").addEventListener("submit", async a => {
     a.preventDefault();
@@ -64,9 +74,11 @@ function initializePage() {
             const b = await a.json();
             throw new Error(b.message)
         }
-        confirm("Image was updated successfully") && (window.location.href = "/profile")
+        showToast("Image updated successfully", "success");
+        window.location.href = "/profile";
     } catch (a) {
-        console.error("Error uploading avatar:", a), alert("Error uploading avatar:", a.message)
+        console.error("Error uploading avatar:", a);
+        showToast(a.message || "Error uploading avatar", "error");
     }
 });
 }

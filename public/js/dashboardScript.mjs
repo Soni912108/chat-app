@@ -89,25 +89,40 @@ function loadRooms() {
         data.rooms.forEach(room => {
             const li = document.createElement("li");
             const roomType = room.isPrivate ? "Private" : "Public";
-            li.textContent = `${room.name} - ${roomType} - `;
-            
-            console.log("Room:", room.name);
-            const isBanned = room.isBanned;
-            
-            console.log("Is user banned:", isBanned);
-            
+            const statusText = room.isBanned
+                ? "Banned"
+                : room.isMember
+                    ? "Open"
+                    : room.hasPendingRequest
+                        ? "Pending"
+                        : "Join";
+
+            const details = document.createElement("div");
+            details.className = "room-card-details";
+
+            const name = document.createElement("span");
+            name.className = "room-card-name";
+            name.textContent = room.name;
+
+            const meta = document.createElement("span");
+            meta.className = "room-card-meta";
+            meta.textContent = roomType;
+
             const status = document.createElement("span");
-            status.style.fontWeight = "bold";
-            status.style.color = isBanned ? "red" : "green";
-            status.textContent = isBanned ? "Banned from this Room" : "Join this Room";
+            status.className = `room-card-status ${statusText.toLowerCase()}`;
+            status.textContent = statusText;
+
+            details.appendChild(name);
+            details.appendChild(meta);
+            li.appendChild(details);
             li.appendChild(status);
-            
+
             li.onclick = () => {
-                console.log("Joining room:", room._id);
-                joinRoom(room._id);
+                if (!room.isBanned) {
+                    joinRoom(room._id);
+                }
             };
             roomsList.appendChild(li);
-            roomsList.appendChild(document.createElement("br"));
         });
     })
     .catch(error => {
@@ -115,19 +130,16 @@ function loadRooms() {
         const roomsList = document.getElementById("rooms");
         roomsList.innerHTML = "";
         spinnerEl.style.display = "none";
-        
-        const li = document.createElement("li");
-        li.textContent = `Error loading rooms: ${error.message}`;
-        roomsList.appendChild(li);
+        showToast(`Error loading rooms: ${error.message}`, "error");
     });
 }
 
-function createRoom() {
+async function createRoom() {
     const roomName = document.getElementById("newRoomName").value;
     const privacyValue = document.getElementById("privacy").value;
 
     if (!roomName.trim()) {
-        alert("Room name cannot be empty");
+        showToast("Room name cannot be empty", "error");
         return;
     }
 
@@ -136,28 +148,35 @@ function createRoom() {
         private: privacyValue === "private" // This will evaluate to true/false
     };
 
-    fetch("/api/rooms/create", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        credentials: "include",
-        body: JSON.stringify(roomData)
-    })
-    .then(response => response.json())
-    .then(data => {
+    try {
+        const response = await fetch("/api/rooms/create", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify(roomData)
+        });
+        const data = await response.json();
         if (data.room) {
-            if (confirm("Room created successfully. Do you want to join this room?")) {
+            const shouldJoin = await confirmDialog({
+                title: "Room created",
+                message: "Do you want to join this room now?",
+                confirmText: "Join room",
+                cancelText: "Stay on dashboard"
+            });
+            if (shouldJoin) {
                 joinRoom(data.room._id);
+            } else {
+                window.location.href = "/dashboard";
             }
         } else {
-            alert("Error creating room: " + data.message);
+            showToast(data.message || "Error creating room", "error");
         }
-    })
-    .catch(error => {
+    } catch (error) {
         console.error("Error:", error);
-        alert("Error creating room");
-    });
+        showToast("Error creating room", "error");
+    }
 }
 
 document.getElementById("createRoomButton").addEventListener("click", createRoom);
@@ -203,10 +222,7 @@ function handleJoinResponse(a, b) {
 }
 
 function displayError(a) {
-    const b = document.getElementById("error");
-    b.textContent = a, b.style.display = "block", setTimeout(() => {
-        b.style.display = "none"
-    }, 5e3)
+    showToast(a, "error");
 }
 
 function checkRedirectMessages() {

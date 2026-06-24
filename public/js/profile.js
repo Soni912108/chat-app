@@ -44,12 +44,13 @@ async function fetchProfileInfo() {
         const c = await b.json();
         displayProfileInfo(c)
     } catch (a) {
-        console.error("Error fetching profile info:", a), alert("Error fetching profile info:", a)
+        console.error("Error fetching profile info:", a);
+        showToast("Error fetching profile info", "error");
     }
 }
 
 function displayProfileInfo(a) {
-    document.getElementById("username").textContent = a.username, document.getElementById("email").textContent = `Email: ${a.email}`, document.getElementById("joined-date").textContent = `Joined: ${new Date(a.joinedDate).toLocaleString()}`, document.getElementById("last-login").textContent = `Last login: ${new Date(a.lastLogin).toLocaleString()}`;
+    document.getElementById("profile-username").textContent = a.username, document.getElementById("email").textContent = `Email: ${a.email}`, document.getElementById("joined-date").textContent = `Joined: ${new Date(a.joinedDate).toLocaleString()}`, document.getElementById("last-login").textContent = `Last login: ${new Date(a.lastLogin).toLocaleString()}`;
     const b = document.getElementById("profile-avatar");
     b.src = a.avatar ? a.avatar : "/public/images/profile-circle.svg";
     const c = document.getElementById("rooms-created");
@@ -89,7 +90,7 @@ function joinRoom(a) {
 }
 
 function displayError(message) {
-    alert(message);
+    showToast(message, "error");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
