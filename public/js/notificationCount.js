@@ -70,7 +70,10 @@ function getNotificationNumber() {
             if (500 === a.status) return {
                 unreadNotifications: 0
             };
-            if (401 === a.status) throw new Error("Unauthorized - Please log in again");
+            if (401 === a.status) {
+                handleAuthExpired();
+                return { unreadNotifications: 0 };
+            }
             throw new Error("Failed to fetch Notifications")
         }
         return a.json()

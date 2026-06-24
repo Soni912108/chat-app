@@ -12,7 +12,7 @@ async function checkAuthentication() {
         
         if (!response.ok) {
             console.log("Authentication failed, redirecting to login");
-            window.location.href = '/login?message=loggedOut';
+            handleAuthExpired();
             return false;
         }
         
@@ -21,7 +21,7 @@ async function checkAuthentication() {
         return true;
     } catch (error) {
         console.error("Error checking authentication:", error);
-        window.location.href = '/login?message=loggedOut';
+        handleAuthExpired();
         return false;
     }
 }
@@ -29,7 +29,7 @@ async function checkAuthentication() {
 async function fetchProfileInfo() {
     const a = currentUserId;
     if (!a) {
-        window.location.href = '/login?message=loggedOut';
+        handleAuthExpired();
         return;
     }
     try {
@@ -37,6 +37,10 @@ async function fetchProfileInfo() {
             method: "GET",
             credentials: "include" // Send cookies for authentication
         });
+        if (b.status === 401) {
+            handleAuthExpired();
+            return;
+        }
         if (!b.ok) {
             const a = await b.json();
             throw new Error(a.message)
@@ -82,7 +86,14 @@ function joinRoom(a) {
             "Content-Type": "application/json"
         },
         credentials: "include" // Send cookies for authentication
-    }).then(a => a.json()).then(b => {
+    }).then(a => {
+        if (a.status === 401) {
+            handleAuthExpired();
+            return null;
+        }
+        return a.json();
+    }).then(b => {
+        if (!b) return;
         b.message ? "You are banned from this room" === b.message ? displayError("You are banned from this room") : window.location.href = `/room?roomId=${a}` : displayError("Error joining room: " + b.message)
     }).catch(a => {
         console.error("Error:", a), displayError("Error joining room")

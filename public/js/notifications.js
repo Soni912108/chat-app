@@ -12,7 +12,7 @@ async function checkAuthentication() {
         if (!response.ok) {
             updateStatus("Authentication failed, redirecting to login");
             console.log("Authentication failed, redirecting to login");
-            window.location.href = '/login?message=loggedOut';
+            handleAuthExpired();
             return false;
         }
         
@@ -22,7 +22,7 @@ async function checkAuthentication() {
     } catch (error) {
         updateStatus("Error checking authentication: " + error.message);
         console.error("Error checking authentication:", error);
-        window.location.href = '/login?message=loggedOut';
+        handleAuthExpired();
         return false;
     }
 }
@@ -64,6 +64,10 @@ async function fetchNotifications() {
             method: "GET",
             credentials: "include" // Send cookies for authentication
         });
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -179,6 +183,10 @@ async function markNotificationAsRead(notificationId) {
             method: "POST",
             credentials: "include" // Send cookies for authentication
         });
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -198,6 +206,10 @@ async function deleteNotification(notificationId) {
             method: "DELETE",
             credentials: "include" // Send cookies for authentication
         });
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -217,6 +229,10 @@ async function handleRoomRequestNotification(senderId, roomId, notificationId) {
             method: "POST",
             credentials: "include" // Send cookies for authentication
         });
+        if (response.status === 401) {
+            handleAuthExpired();
+            return false;
+        }
         
         if (!response.ok) {
             const errorData = await response.json();

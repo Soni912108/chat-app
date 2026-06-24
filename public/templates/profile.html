@@ -85,6 +85,10 @@
         });
 
         if (!response.ok) {
+          if (response.status === 401) {
+            handleAuthExpired();
+            return;
+          }
           const error = await response.json();
           throw new Error(error.message);
         }
@@ -104,7 +108,12 @@
           credentials: 'include',
         });
 
-        if (!response.ok) return;
+        if (!response.ok) {
+          if (response.status === 401) {
+            handleAuthExpired();
+          }
+          return;
+        }
         const data = await response.json();
         if (data.settings && data.settings.theme) {
           document.getElementById('theme').value = data.settings.theme;

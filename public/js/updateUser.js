@@ -10,7 +10,7 @@ async function checkAuthentication() {
         
         if (!response.ok) {
             console.log("Authentication failed, redirecting to login");
-            window.location.href = '/login?message=loggedOut';
+            handleAuthExpired();
             return false;
         }
         
@@ -18,7 +18,7 @@ async function checkAuthentication() {
         return true;
     } catch (error) {
         console.error("Error checking authentication:", error);
-        window.location.href = '/login?message=loggedOut';
+        handleAuthExpired();
         return false;
     }
 }
@@ -47,8 +47,12 @@ function initializePage() {
                     oldPassword: b,
                     newPassword: c
                 })
-            }),
-            d = await a.json();
+            });
+        if (a.status === 401) {
+            handleAuthExpired();
+            return;
+        }
+        const d = await a.json();
         if (a.ok) {
             showToast("Password changed successfully", "success");
             window.location.href = "/profile";
@@ -70,6 +74,10 @@ function initializePage() {
             credentials: "include", // Send cookies for authentication
             body: b
         });
+        if (a.status === 401) {
+            handleAuthExpired();
+            return;
+        }
         if (!a.ok) {
             const b = await a.json();
             throw new Error(b.message)

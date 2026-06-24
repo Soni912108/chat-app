@@ -37,7 +37,16 @@
     overlay.remove();
   }
 
-  function confirmDialog({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', danger = false }) {
+  function setDialogMessage(body, message, messageHtml) {
+    if (typeof messageHtml === 'string') {
+      body.innerHTML = messageHtml;
+      return;
+    }
+
+    body.textContent = message;
+  }
+
+  function confirmDialog({ title, message, messageHtml, confirmText = 'Confirm', cancelText = 'Cancel', danger = false }) {
     return new Promise(resolve => {
       const root = ensureModalRoot();
       const overlay = document.createElement('div');
@@ -49,7 +58,7 @@
       const heading = document.createElement('h2');
       heading.textContent = title;
       const body = document.createElement('p');
-      body.textContent = message;
+      setDialogMessage(body, message, messageHtml);
 
       const actions = document.createElement('div');
       actions.className = 'modal-actions';
@@ -81,7 +90,7 @@
     });
   }
 
-  function promptDialog({ title, message, placeholder = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false }) {
+  function promptDialog({ title, message, messageHtml, placeholder = '', confirmText = 'Confirm', cancelText = 'Cancel', danger = false }) {
     return new Promise(resolve => {
       const root = ensureModalRoot();
       const overlay = document.createElement('div');
@@ -93,7 +102,7 @@
       const heading = document.createElement('h2');
       heading.textContent = title;
       const body = document.createElement('p');
-      body.textContent = message;
+      setDialogMessage(body, message, messageHtml);
 
       const input = document.createElement('input');
       input.type = 'text';
@@ -140,4 +149,14 @@
   window.showToast = showToast;
   window.confirmDialog = confirmDialog;
   window.promptDialog = promptDialog;
+  window.handleAuthExpired = function () {
+    if (window.__authExpiredRedirecting) {
+      return;
+    }
+    window.__authExpiredRedirecting = true;
+    showToast('Your session expired. Please log in again.', 'warning');
+    setTimeout(() => {
+      window.location.href = '/login?message=loggedOut';
+    }, 900);
+  };
 })();

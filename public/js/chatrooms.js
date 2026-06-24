@@ -2,6 +2,7 @@ const socket = io({ path: '/socket.io' });
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get("roomId");
 let currentUserId = null;
+let currentUsername = null;
 
 let retryTimeout;
 let retryCount = 0;
@@ -19,16 +20,17 @@ async function checkAuthentication() {
         
         if (!response.ok) {
             console.log("Authentication failed, redirecting to login");
-            window.location.href = '/login?message=loggedOut';
+            handleAuthExpired();
             return false;
         }
         
         const data = await response.json();
         currentUserId = data.user.id;
+        currentUsername = data.user.username;
         return true;
     } catch (error) {
         console.error("Error checking authentication:", error);
-        window.location.href = '/login?message=loggedOut';
+        handleAuthExpired();
         return false;
     }
 }
@@ -66,7 +68,7 @@ async function checkRoomAccess() {
                 return false;
             } else {
                 console.log("Unauthorized access, redirecting to login");
-                window.location.href = "/login?message=loggedOut";
+                handleAuthExpired();
                 return false;
             }
         }
@@ -104,8 +106,15 @@ function fetchRoomDetails() {
         },
         credentials: "include"
     })
-    .then(response => response.json())
+    .then(response => {
+        if (response.status === 401) {
+            handleAuthExpired();
+            return null;
+        }
+        return response.json();
+    })
     .then(data => {
+        if (!data) return;
         console.log("Room details response:", data);
         
         if (data.room) {
@@ -115,6 +124,7 @@ function fetchRoomDetails() {
             const isOwner = data.room.roomOwner._id === currentUserId;
             document.getElementById("deleteRoom").style.display = isOwner ? "" : "none";
             document.getElementById("banUser").style.display = isOwner ? "" : "none";
+            document.getElementById("transferOwnership").style.display = isOwner ? "" : "none";
             
             const userList = document.getElementById("userList");
             userList.innerHTML = "";
@@ -155,7 +165,7 @@ function displayMessages() {
                 return { messageTuples: [] };
             }
             if (response.status === 401) {
-                window.location.href = "/login?message=loggedOut";
+                handleAuthExpired();
                 return { messageTuples: [] };
             }
             throw new Error("Failed to fetch messages");
@@ -376,6 +386,14 @@ socket.on("updateUserList", (users) => {
     showToast(message, "error");
     window.location.href = "/dashboard?message=userBanned";
 });
+socket.on("roomOwnershipTransferred", (payload) => {
+    const message = typeof payload === "string" ? payload : payload?.message;
+    console.log("Room ownership transferred:", payload);
+    if (message) {
+        showToast(message, "info");
+    }
+    fetchRoomDetails();
+});
 socket.on("reloadingPage", (users) => {
     console.log("Reloading page with users:", users);
     const userList = document.getElementById("userList");
@@ -434,6 +452,10 @@ async function deleteRoom() {
             method: "DELETE",
             credentials: "include"
         });
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
         
         const data = await response.json();
         console.log("Delete room response:", data);
@@ -459,6 +481,11 @@ function banUser(username) {
         displayError("Missing username or room ID");
         return;
     }
+
+    if (currentUsername && username.trim() === currentUsername.trim()) {
+        displayError("Room owners cannot ban themselves. Delete the room or transfer ownership instead.");
+        return;
+    }
     
     console.log("Attempting to ban user:", username, "from room:", roomId);
     
@@ -479,6 +506,10 @@ function banUser(username) {
             body: data
         })))
         .then(({ status, body }) => {
+            if (status === 401) {
+                handleAuthExpired();
+                return;
+            }
             console.log("Ban user response:", { status, body });
             
             if (status === 200) {
@@ -502,10 +533,62 @@ function banUser(username) {
         displayError("User not found in the list");
     }
 }
+
+async function transferOwnership(targetUsername) {
+    if (!roomId) {
+        displayError("Missing room ID");
+        return;
+    }
+
+    const username = targetUsername || await promptDialog({
+        title: "Transfer ownership",
+        message: "Enter the exact username of a current room member.",
+        placeholder: "Username",
+        confirmText: "Transfer",
+        danger: true
+    });
+
+    if (!username) {
+        return;
+    }
+
+    if (currentUsername && username.trim() === currentUsername.trim()) {
+        displayError("You are already the owner of this room.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/rooms/${roomId}/transfer`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({ targetUsername: username.trim() })
+        });
+
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast(data.message, "success");
+            await fetchRoomDetails();
+        } else {
+            displayError(data.message);
+        }
+    } catch (error) {
+        console.error("Error transferring ownership:", error);
+        displayError("Internal server error");
+    }
+}
 document.getElementById("deleteRoom").onclick = async function() {
     const confirmation = await promptDialog({
         title: "Delete room",
-        message: "Type Delete this room to confirm. This removes the room and its messages.",
+        messageHtml: 'Type <strong>Delete this room</strong> to confirm. This removes the room and its messages.',
         placeholder: "Delete this room",
         confirmText: "Delete",
         danger: true
@@ -531,4 +614,8 @@ document.getElementById("banUser").onclick = async function() {
         console.log("Banning user:", username);
         banUser(username);
     }
+};
+
+document.getElementById("transferOwnership").onclick = async function() {
+    await transferOwnership();
 };

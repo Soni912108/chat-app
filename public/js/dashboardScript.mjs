@@ -11,7 +11,7 @@ async function checkAuthentication() {
         
         if (!response.ok) {
             console.log("Authentication failed, redirecting to login");
-            window.location.href = '/login?message=loggedOut';
+            handleAuthExpired();
             return false;
         }
         
@@ -19,7 +19,7 @@ async function checkAuthentication() {
         return true;
     } catch (error) {
         console.error("Error checking authentication:", error);
-        window.location.href = '/login?message=loggedOut';
+        handleAuthExpired();
         return false;
     }
 }
@@ -67,6 +67,10 @@ function loadRooms() {
     .then(async response => {
         console.log("Response status:", response.status);
         if (!response.ok) {
+            if (response.status === 401) {
+                handleAuthExpired();
+                return { rooms: [] };
+            }
             const error = await response.json();
             console.error("Error response:", error);
             throw new Error(error.message || 'Failed to fetch rooms');
@@ -158,6 +162,10 @@ async function createRoom() {
             body: JSON.stringify(roomData)
         });
         const data = await response.json();
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
         if (data.room) {
             const shouldJoin = await confirmDialog({
                 title: "Room created",
@@ -191,8 +199,13 @@ function joinRoom(roomId) {
         credentials: "include"
     }).then(response => {
         console.log("Join room response status:", response.status);
+        if (response.status === 401) {
+            handleAuthExpired();
+            return null;
+        }
         return response.json();
     }).then(data => {
+        if (!data) return;
         console.log("Join room response data:", data);
         handleJoinResponse(data, roomId);
     }).catch(error => {

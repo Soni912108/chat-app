@@ -87,6 +87,12 @@ router.delete('/:roomId/:username', auth, async (req, res) => {
       return res.status(404).json({ message: 'User not found in this room' });
     }
 
+    if (userToRemove._id.toString() === room.roomOwner._id.toString()) {
+      return res.status(403).json({
+        message: 'Room owners cannot ban themselves. Delete the room or transfer ownership instead.'
+      });
+    }
+
     // Remove the user from the users list and add to banned list
     room.users = room.users.filter(user => user._id.toString() !== userToRemove._id.toString());
     room.banned.push(userToRemove._id);
@@ -110,6 +116,66 @@ router.delete('/:roomId/:username', auth, async (req, res) => {
   }
 });
 
+
+
+// Transfer room ownership to another existing room member
+router.post('/:roomId/transfer', auth, async (req, res) => {
+  const { roomId } = req.params;
+  const { targetUsername } = req.body;
+
+  if (!targetUsername || !targetUsername.trim()) {
+    return res.status(400).json({ message: 'Target username is required' });
+  }
+
+  try {
+    const room = await Room.findById(roomId).populate('users', 'username').populate('roomOwner', 'username');
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const isOwner = req.user.id.toString() === room.roomOwner._id.toString();
+    if (!isOwner) {
+      return res.status(403).json({ message: 'You are not the owner of this room.' });
+    }
+
+    const targetUser = room.users.find(user => user.username === targetUsername.trim());
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found in this room' });
+    }
+
+    if (targetUser._id.toString() === room.roomOwner._id.toString()) {
+      return res.status(400).json({ message: 'That user is already the room owner' });
+    }
+
+    room.roomOwner = targetUser._id;
+    if (!objectIdListIncludes(room.users, targetUser._id)) {
+      room.users.push(targetUser._id);
+    }
+
+    await room.save();
+
+    const io = getIo();
+    io.to(roomId.toString()).emit('roomOwnershipTransferred', {
+      message: `Room ownership transferred to ${targetUser.username}.`,
+      roomOwner: { _id: targetUser._id, username: targetUser.username }
+    });
+
+    await notifyUsers(
+      req.user.id,
+      targetUser._id,
+      `Ownership of room ${room.name} was transferred to you.`,
+      roomId
+    );
+
+    res.status(200).json({
+      message: 'Room ownership transferred successfully',
+      roomOwner: { _id: targetUser._id, username: targetUser.username }
+    });
+  } catch (error) {
+    logger.error('routes/rooms:transferOwnership', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 // Delete single room details and associated messages

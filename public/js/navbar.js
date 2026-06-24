@@ -18,6 +18,10 @@ async function loadTheme() {
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
             applyTheme({ theme: 'light' });
             return;
         }
@@ -41,6 +45,10 @@ async function loadCurrentUser() {
         });
 
         if (!response.ok) {
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
             welcomeUser.textContent = "";
             return;
         }
