@@ -3,6 +3,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get("roomId");
 let currentUserId = null;
 let currentUsername = null;
+let isRoomOwner = false;
 
 let retryTimeout;
 let retryCount = 0;
@@ -121,9 +122,11 @@ function fetchRoomDetails() {
             document.getElementById("roomTitle").textContent = `Room - ${data.room.name}`;
             document.getElementById("roomName").textContent = `Room - ${data.room.name}`;
             document.getElementById("roomOwner").textContent = `Owner - ${data.room.roomOwner.username}`;
-            const isOwner = data.room.roomOwner._id === currentUserId;
+            isRoomOwner = data.room.roomOwner._id === currentUserId;
+            const isOwner = isRoomOwner;
             document.getElementById("deleteRoom").style.display = isOwner ? "" : "none";
             document.getElementById("banUser").style.display = isOwner ? "" : "none";
+            document.getElementById("renameRoom").style.display = isOwner ? "" : "none";
             document.getElementById("transferOwnership").style.display = isOwner ? "" : "none";
             
             const userList = document.getElementById("userList");
@@ -394,6 +397,14 @@ socket.on("roomOwnershipTransferred", (payload) => {
     }
     fetchRoomDetails();
 });
+socket.on("roomRenamed", (payload) => {
+    const message = typeof payload === "string" ? payload : payload?.message;
+    console.log("Room renamed:", payload);
+    if (message) {
+        showToast(message, "info");
+    }
+    fetchRoomDetails();
+});
 socket.on("reloadingPage", (users) => {
     console.log("Reloading page with users:", users);
     const userList = document.getElementById("userList");
@@ -585,6 +596,100 @@ async function transferOwnership(targetUsername) {
         displayError("Internal server error");
     }
 }
+
+async function leaveRoom() {
+    if (!roomId) {
+        displayError("Missing room ID");
+        return;
+    }
+
+    if (isRoomOwner) {
+        displayError("Room owners cannot leave their own room. Delete the room or transfer ownership instead.");
+        return;
+    }
+
+    const confirmation = await confirmDialog({
+        title: "Leave room",
+        message: "Are you sure you want to leave this room?",
+        confirmText: "Leave",
+        danger: true
+    });
+
+    if (!confirmation) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/rooms/${roomId}/leave`, {
+            method: "POST",
+            credentials: "include"
+        });
+
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast(data.message, "success");
+            window.location.href = "/dashboard?message=leftRoom";
+        } else {
+            displayError(data.message);
+        }
+    } catch (error) {
+        console.error("Error leaving room:", error);
+        displayError("Internal server error");
+    }
+}
+
+async function renameRoom() {
+    if (!roomId) {
+        displayError("Missing room ID");
+        return;
+    }
+
+    const newName = await promptDialog({
+        title: "Rename room",
+        message: "Enter the new room name.",
+        placeholder: "New room name",
+        confirmText: "Rename",
+        danger: false
+    });
+
+    if (!newName) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/rooms/${roomId}/rename`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({ name: newName })
+        });
+
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showToast(data.message, "success");
+            await fetchRoomDetails();
+        } else {
+            displayError(data.message);
+        }
+    } catch (error) {
+        console.error("Error renaming room:", error);
+        displayError("Internal server error");
+    }
+}
 document.getElementById("deleteRoom").onclick = async function() {
     const confirmation = await promptDialog({
         title: "Delete room",
@@ -618,4 +723,8 @@ document.getElementById("banUser").onclick = async function() {
 
 document.getElementById("transferOwnership").onclick = async function() {
     await transferOwnership();
+};
+
+document.getElementById("leaveRoom").onclick = async function() {
+    await leaveRoom();
 };

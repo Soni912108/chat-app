@@ -178,6 +178,112 @@ router.post('/:roomId/transfer', auth, async (req, res) => {
 });
 
 
+// Rename a room
+router.patch('/:roomId/rename', auth, async (req, res) => {
+  const { roomId } = req.params;
+  const { name } = req.body;
+  const newName = typeof name === 'string' ? name.trim() : '';
+
+  if (!newName) {
+    return res.status(400).json({ message: 'Room name is required' });
+  }
+
+  if (newName.length > 60) {
+    return res.status(400).json({ message: 'Room name must be 60 characters or less' });
+  }
+
+  try {
+    const room = await Room.findById(roomId).populate('roomOwner', 'username');
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const isOwner = req.user.id.toString() === room.roomOwner._id.toString();
+    if (!isOwner) {
+      return res.status(403).json({ message: 'You are not the owner of this room.' });
+    }
+
+    const previousName = room.name;
+    room.name = newName;
+    await room.save();
+
+    const io = getIo();
+    io.to(roomId.toString()).emit('roomRenamed', {
+      message: `Room renamed to ${newName}.`,
+      room: { _id: room._id, name: newName }
+    });
+
+    for (const userId of room.users) {
+      if (userId.toString() === req.user.id.toString()) {
+        continue;
+      }
+
+      await notifyUsers(
+        req.user.id,
+        userId,
+        `Room ${previousName} was renamed to ${newName}.`,
+        roomId
+      );
+    }
+
+    res.status(200).json({
+      message: 'Room renamed successfully',
+      room: { _id: room._id, name: newName }
+    });
+  } catch (error) {
+    logger.error('routes/rooms:rename', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+// Leave a room as a regular member
+router.post('/:roomId/leave', auth, async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const room = await Room.findById(roomId).populate('users', 'username').populate('roomOwner', 'username');
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const isOwner = userId.toString() === room.roomOwner._id.toString();
+    if (isOwner) {
+      return res.status(403).json({
+        message: 'Room owners cannot leave their own room. Delete the room or transfer ownership instead.'
+      });
+    }
+
+    const isMember = objectIdListIncludes(room.users, userId);
+    if (!isMember) {
+      return res.status(403).json({ message: 'You are not a member of this room' });
+    }
+
+    room.users = room.users.filter(user => user._id.toString() !== userId.toString());
+    room.pendingRequests = (room.pendingRequests || []).filter(id => id.toString() !== userId.toString());
+    await room.save();
+
+    const updatedRoom = await Room.findById(roomId).populate('users', 'username');
+    const io = getIo();
+    io.to(roomId.toString()).emit('updateUserList', updatedRoom.users || []);
+
+    const leavingUser = await User.findById(userId).select('username');
+    await notifyUsers(
+      userId,
+      room.roomOwner._id,
+      `${leavingUser ? leavingUser.username : 'A member'} left the room ${room.name}.`,
+      roomId
+    );
+
+    res.status(200).json({ message: 'You left the room successfully' });
+  } catch (error) {
+    logger.error('routes/rooms:leave', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
 // Delete single room details and associated messages
 router.delete('/:roomId', auth, async (req, res) => {
   const { roomId } = req.params;
