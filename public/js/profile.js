@@ -32,25 +32,27 @@ async function fetchProfileInfo() {
         handleAuthExpired();
         return;
     }
-    try {
-        const b = await fetch(`/api/auth/profileInfo/${a}`, {
-            method: "GET",
-            credentials: "include" // Send cookies for authentication
-        });
-        if (b.status === 401) {
-            handleAuthExpired();
-            return;
+    await withGlobalLoading(async () => {
+        try {
+            const b = await fetch(`/api/auth/profileInfo/${a}`, {
+                method: "GET",
+                credentials: "include" // Send cookies for authentication
+            });
+            if (b.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            if (!b.ok) {
+                const a = await b.json();
+                throw new Error(a.message)
+            }
+            const c = await b.json();
+            displayProfileInfo(c)
+        } catch (a) {
+            console.error("Error fetching profile info:", a);
+            showToast("Error fetching profile info", "error");
         }
-        if (!b.ok) {
-            const a = await b.json();
-            throw new Error(a.message)
-        }
-        const c = await b.json();
-        displayProfileInfo(c)
-    } catch (a) {
-        console.error("Error fetching profile info:", a);
-        showToast("Error fetching profile info", "error");
-    }
+    }, "Loading profile...");
 }
 
 function displayProfileInfo(a) {
@@ -80,24 +82,26 @@ function displayProfileInfo(a) {
 }
 
 function joinRoom(a) {
-    fetch(`/api/rooms/${a}/join`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        credentials: "include" // Send cookies for authentication
-    }).then(a => {
-        if (a.status === 401) {
-            handleAuthExpired();
-            return null;
-        }
-        return a.json();
-    }).then(b => {
-        if (!b) return;
-        b.message ? "You are banned from this room" === b.message ? displayError("You are banned from this room") : window.location.href = `/room?roomId=${a}` : displayError("Error joining room: " + b.message)
-    }).catch(a => {
-        console.error("Error:", a), displayError("Error joining room")
-    })
+    withGlobalLoading(async () => {
+        return fetch(`/api/rooms/${a}/join`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include" // Send cookies for authentication
+        }).then(a => {
+            if (a.status === 401) {
+                handleAuthExpired();
+                return null;
+            }
+            return a.json();
+        }).then(b => {
+            if (!b) return;
+            b.message ? "You are banned from this room" === b.message ? displayError("You are banned from this room") : window.location.href = `/room?roomId=${a}` : displayError("Error joining room: " + b.message)
+        }).catch(a => {
+            console.error("Error:", a), displayError("Error joining room")
+        })
+    }, "Joining room...");
 }
 
 function displayError(message) {

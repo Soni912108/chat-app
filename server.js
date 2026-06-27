@@ -38,7 +38,22 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve u
 
 
 // Middleware to protect dashboard and room routes
-app.get('/dashboard', (req, res) => {
+async function requirePageAccess(req, res, next) {
+  try {
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const token = cookies.token;
+    if (!token) {
+      return res.redirect('/login?message=loggedOut');
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET);
+    return next();
+  } catch (error) {
+    return res.redirect('/login?message=loggedOut');
+  }
+}
+
+app.get('/dashboard', requirePageAccess, (req, res) => {
   try {
         res.sendFile(path.join(__dirname, 'public', 'templates', 'dashboard.html'));
     } catch (error) {
@@ -85,18 +100,18 @@ app.get('/room', async (req, res) => {
 });
 
 // Route to render profile page
-app.get('/profile',(req, res) => {
+app.get('/profile', requirePageAccess, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'profile.html'));
 });
 
 // Route to render notification page
-app.get('/notification',(req, res) => {
+app.get('/notification', requirePageAccess, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'notification.html'));
 });
 
 
 // Route to render updateUserProfile page
-app.get('/updateUser', (req, res) => {
+app.get('/updateUser', requirePageAccess, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'updateUser.html'));
 });
 

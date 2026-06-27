@@ -36,58 +36,62 @@ function initializePage() {
         showToast("New passwords do not match", "error");
         return;
     }
-    try {
-        const a = await fetch("/api/auth/changePassword", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                credentials: "include", // Send cookies for authentication
-                body: JSON.stringify({
-                    oldPassword: b,
-                    newPassword: c
-                })
-            });
-        if (a.status === 401) {
-            handleAuthExpired();
-            return;
+    await withGlobalLoading(async () => {
+        try {
+            const a = await fetch("/api/auth/changePassword", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include", // Send cookies for authentication
+                    body: JSON.stringify({
+                        oldPassword: b,
+                        newPassword: c
+                    })
+                });
+            if (a.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            const d = await a.json();
+            if (a.ok) {
+                showToast("Password changed successfully", "success");
+                window.location.href = "/profile";
+            } else {
+                showToast(d.message || "Error changing password. Please try again.", "error");
+            }
+        } catch (a) {
+            console.error("Error changing password:", a);
+            showToast("Error changing password. Please try again.", "error");
         }
-        const d = await a.json();
-        if (a.ok) {
-            showToast("Password changed successfully", "success");
-            window.location.href = "/profile";
-        } else {
-            showToast(d.message || "Error changing password. Please try again.", "error");
-        }
-    } catch (a) {
-        console.error("Error changing password:", a);
-        showToast("Error changing password. Please try again.", "error");
-    }
+    }, "Changing password...");
 }), document.getElementById("avatar-upload-form").addEventListener("submit", async a => {
     a.preventDefault();
     const b = new FormData,
         c = document.getElementById("avatar-input");
     b.append("avatar", c.files[0]);
-    try {
-        const a = await fetch("/api/fileUpload/uploadAvatar", {
-            method: "POST",
-            credentials: "include", // Send cookies for authentication
-            body: b
-        });
-        if (a.status === 401) {
-            handleAuthExpired();
-            return;
+    await withGlobalLoading(async () => {
+        try {
+            const a = await fetch("/api/fileUpload/uploadAvatar", {
+                method: "POST",
+                credentials: "include", // Send cookies for authentication
+                body: b
+            });
+            if (a.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            if (!a.ok) {
+                const b = await a.json();
+                throw new Error(b.message)
+            }
+            showToast("Image updated successfully", "success");
+            window.location.href = "/profile";
+        } catch (a) {
+            console.error("Error uploading avatar:", a);
+            showToast(a.message || "Error uploading avatar", "error");
         }
-        if (!a.ok) {
-            const b = await a.json();
-            throw new Error(b.message)
-        }
-        showToast("Image updated successfully", "success");
-        window.location.href = "/profile";
-    } catch (a) {
-        console.error("Error uploading avatar:", a);
-        showToast(a.message || "Error uploading avatar", "error");
-    }
+    }, "Uploading avatar...");
 });
 }
 

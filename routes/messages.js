@@ -5,24 +5,29 @@ const auth = require('../middleware/auth');
 const Room = require('../models/Rooms');
 const { getRoomAccess } = require('../utils/roomAccess');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 router.get('/:roomId', auth,async (req, res) => {
   const { roomId } = req.params;
   const userId = req.user.id;
-  const room = await Room.findById(roomId);
 
-  if (!room) return res.status(404).json({ message: 'Room not found' });
-
-  const { isMember, isBanned } = getRoomAccess(room, userId);
-
-  if (!isMember) {
-    return res.status(403).json({ message: 'Access denied' });
-  }
-  if (isBanned) {
-    return res.status(403).json({ message: 'You are banned from this room' });
+  if (!mongoose.Types.ObjectId.isValid(roomId)) {
+    return res.status(404).json({ message: 'Room not found' });
   }
 
   try {
+    const room = await Room.findById(roomId);
+    if (!room) return res.status(404).json({ message: 'Room not found' });
+
+    const { isMember, isBanned } = getRoomAccess(room, userId);
+
+    if (isBanned) {
+      return res.status(403).json({ message: 'You are banned from this room' });
+    }
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
     const before = typeof req.query.before === 'string' ? req.query.before.trim() : '';
     const query = { room: roomId };

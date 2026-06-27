@@ -902,7 +902,7 @@ input[type="file"] {
   position: fixed;
   right: 18px;
   bottom: 18px;
-  z-index: 100;
+  z-index: 220;
   display: grid;
   gap: 10px;
   width: min(360px, calc(100vw - 36px));
@@ -939,7 +939,7 @@ input[type="file"] {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 180;
   display: grid;
   place-items: center;
   padding: 18px;
@@ -970,6 +970,61 @@ input[type="file"] {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
+}
+
+.global-loading-root {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
+}
+
+.global-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(18, 22, 22, 0.18);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 140ms ease, visibility 140ms ease;
+}
+
+.global-loading-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.global-loading-panel {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  min-width: 180px;
+  padding: 22px 26px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.global-loading-spinner {
+  display: block;
+  margin: 0;
+}
+
+.global-loading-spinner div {
+  display: block;
+}
+
+.global-loading-text {
+  margin: 0;
+  color: var(--text);
+  font-weight: 800;
+  text-align: center;
 }
 
 @media (max-width: 860px) {

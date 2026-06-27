@@ -161,51 +161,50 @@ function renderMessages(messages, { replace = false, prepend = false } = {}) {
 
 function fetchRoomDetails() {
     console.log("Fetching room details for room:", roomId);
-    
-    fetch(`/api/rooms/${roomId}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        credentials: "include"
-    })
-    .then(response => {
-        if (response.status === 401) {
-            handleAuthExpired();
-            return null;
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (!data) return;
-        console.log("Room details response:", data);
-        
-        if (data.room) {
-            document.getElementById("roomTitle").textContent = `Room - ${data.room.name}`;
-            document.getElementById("roomName").textContent = `Room - ${data.room.name}`;
-            document.getElementById("roomOwner").textContent = `Owner - ${data.room.roomOwner.username}`;
-            isRoomOwner = data.room.roomOwner._id === currentUserId;
-            const isOwner = isRoomOwner;
-            document.getElementById("deleteRoom").style.display = isOwner ? "" : "none";
-            document.getElementById("banUser").style.display = isOwner ? "" : "none";
-            document.getElementById("renameRoom").style.display = isOwner ? "" : "none";
-            document.getElementById("transferOwnership").style.display = isOwner ? "" : "none";
-            
-            const userList = document.getElementById("userList");
-            userList.innerHTML = "";
-            
-            data.room.users.forEach(user => {
-                const listItem = document.createElement("li");
-                listItem.textContent = user.username;
-                userList.appendChild(listItem);
+    withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include"
             });
-        } else {
-            console.error("Error fetching room details:", data.message);
+
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+
+            const data = await response.json();
+            console.log("Room details response:", data);
+            
+            if (data.room) {
+                document.getElementById("roomTitle").textContent = `Room - ${data.room.name}`;
+                document.getElementById("roomName").textContent = `Room - ${data.room.name}`;
+                document.getElementById("roomOwner").textContent = `Owner - ${data.room.roomOwner.username}`;
+                isRoomOwner = data.room.roomOwner._id === currentUserId;
+                const isOwner = isRoomOwner;
+                document.getElementById("deleteRoom").style.display = isOwner ? "" : "none";
+                document.getElementById("banUser").style.display = isOwner ? "" : "none";
+                document.getElementById("renameRoom").style.display = isOwner ? "" : "none";
+                document.getElementById("transferOwnership").style.display = isOwner ? "" : "none";
+                
+                const userList = document.getElementById("userList");
+                userList.innerHTML = "";
+                
+                data.room.users.forEach(user => {
+                    const listItem = document.createElement("li");
+                    listItem.textContent = user.username;
+                    userList.appendChild(listItem);
+                });
+            } else {
+                console.error("Error fetching room details:", data.message);
+            }
+        } catch (error) {
+            console.error("Error fetching room details:", error);
         }
-    })
-    .catch(error => {
-        console.error("Error fetching room details:", error);
-    });
+    }, "Loading room...");
 }
 
 function displayMessages() {
@@ -229,78 +228,80 @@ async function fetchMessages(before = null, mode = "replace") {
         params.set("before", before);
     }
 
-    const response = await fetch(`/api/messages/${roomId}?${params.toString()}`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        credentials: "include"
-    });
+    await withGlobalLoading(async () => {
+        const response = await fetch(`/api/messages/${roomId}?${params.toString()}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include"
+        });
 
-    console.log("Messages response status:", response.status);
+        console.log("Messages response status:", response.status);
 
-    if (!response.ok) {
-        if (response.status === 403) {
-            window.location.href = "/dashboard?message=accessDenied";
-            return;
+        if (!response.ok) {
+            if (response.status === 403) {
+                window.location.href = "/dashboard?message=accessDenied";
+                return;
+            }
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            if (response.status === 404) {
+                if (mode === "replace") {
+                    const messagesContainer = document.getElementById("messages");
+                    if (messagesContainer) {
+                        messagesContainer.innerHTML = "";
+                        const emptyMessage = document.createElement("li");
+                        emptyMessage.textContent = "It's empty. Type something here...";
+                        messagesContainer.appendChild(emptyMessage);
+                    }
+                }
+                return;
+            }
+            throw new Error("Failed to fetch messages");
         }
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
-        }
-        if (response.status === 404) {
-            if (mode === "replace") {
-                const messagesContainer = document.getElementById("messages");
-                if (messagesContainer) {
-                    messagesContainer.innerHTML = "";
+
+        const data = await response.json();
+        console.log("Messages data:", data);
+
+        const tuples = Array.isArray(data.messageTuples) ? data.messageTuples : [];
+        hasMoreMessages = Boolean(data.hasMore);
+        oldestMessageCursor = data.oldestCursor || oldestMessageCursor;
+
+        if (mode === "replace") {
+            const messagesContainer = document.getElementById("messages");
+            if (messagesContainer) {
+                messagesContainer.innerHTML = "";
+                if (!tuples.length) {
                     const emptyMessage = document.createElement("li");
                     emptyMessage.textContent = "It's empty. Type something here...";
                     messagesContainer.appendChild(emptyMessage);
+                    messagesInitialized = true;
+                    return;
                 }
             }
+            renderMessages(tuples, { replace: true });
+            messagesInitialized = true;
+            scrollToBottom();
             return;
         }
-        throw new Error("Failed to fetch messages");
-    }
 
-    const data = await response.json();
-    console.log("Messages data:", data);
-
-    const tuples = Array.isArray(data.messageTuples) ? data.messageTuples : [];
-    hasMoreMessages = Boolean(data.hasMore);
-    oldestMessageCursor = data.oldestCursor || oldestMessageCursor;
-
-    if (mode === "replace") {
-        const messagesContainer = document.getElementById("messages");
-        if (messagesContainer) {
-            messagesContainer.innerHTML = "";
-            if (!tuples.length) {
-                const emptyMessage = document.createElement("li");
-                emptyMessage.textContent = "It's empty. Type something here...";
-                messagesContainer.appendChild(emptyMessage);
-                messagesInitialized = true;
+        if (mode === "prepend" && tuples.length) {
+            const messagesContainer = document.getElementById("messages");
+            const scrollContainer = document.getElementById("messages-container");
+            if (!messagesContainer || !scrollContainer) {
                 return;
             }
-        }
-        renderMessages(tuples, { replace: true });
-        messagesInitialized = true;
-        scrollToBottom();
-        return;
-    }
 
-    if (mode === "prepend" && tuples.length) {
-        const messagesContainer = document.getElementById("messages");
-        const scrollContainer = document.getElementById("messages-container");
-        if (!messagesContainer || !scrollContainer) {
-            return;
+            const previousHeight = scrollContainer.scrollHeight;
+            const previousTop = scrollContainer.scrollTop;
+            renderMessages(tuples, { prepend: true });
+            const nextHeight = scrollContainer.scrollHeight;
+            scrollContainer.scrollTop = nextHeight - previousHeight + previousTop;
         }
-
-        const previousHeight = scrollContainer.scrollHeight;
-        const previousTop = scrollContainer.scrollTop;
-        renderMessages(tuples, { prepend: true });
-        const nextHeight = scrollContainer.scrollHeight;
-        scrollContainer.scrollTop = nextHeight - previousHeight + previousTop;
-    }
+    }, mode === "replace" ? "Loading messages..." : "Loading older messages...");
 }
 socket.on("connect", async () => {
     // Check authentication first
@@ -526,31 +527,33 @@ async function deleteRoom() {
         return;
     }
     
-    try {
-        console.log("Attempting to delete room:", roomId);
-        
-        const response = await fetch(`/api/rooms/${roomId}`, {
-            method: "DELETE",
-            credentials: "include"
-        });
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
+    await withGlobalLoading(async () => {
+        try {
+            console.log("Attempting to delete room:", roomId);
+            
+            const response = await fetch(`/api/rooms/${roomId}`, {
+                method: "DELETE",
+                credentials: "include"
+            });
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            
+            const data = await response.json();
+            console.log("Delete room response:", data);
+            
+            if (data.message === "Room and associated messages deleted successfully") {
+                showToast("Room deleted successfully", "success");
+                window.location.href = "/dashboard";
+            } else {
+                displayError(data.message);
+            }
+        } catch (error) {
+            console.error("Error deleting room:", error);
+            displayError("Error deleting room");
         }
-        
-        const data = await response.json();
-        console.log("Delete room response:", data);
-        
-        if (data.message === "Room and associated messages deleted successfully") {
-            showToast("Room deleted successfully", "success");
-            window.location.href = "/dashboard";
-        } else {
-            displayError(data.message);
-        }
-    } catch (error) {
-        console.error("Error deleting room:", error);
-        displayError("Error deleting room");
-    }
+    }, "Deleting room...");
 }
 
 function displayError(errorMessage) {
@@ -575,40 +578,34 @@ function banUser(username) {
         .find(li => li.textContent.trim() === username);
     
     if (userElement) {
-        fetch(`/api/rooms/${roomId}/${username}`, {
-            method: "DELETE",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include"
-        })
-        .then(response => response.json().then(data => ({
-            status: response.status,
-            body: data
-        })))
-        .then(({ status, body }) => {
-            if (status === 401) {
-                handleAuthExpired();
-                return;
+        withGlobalLoading(async () => {
+            try {
+                const response = await fetch(`/api/rooms/${roomId}/${username}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include"
+                });
+                const data = await response.json();
+                if (response.status === 401) {
+                    handleAuthExpired();
+                    return;
+                }
+                console.log("Ban user response:", { status: response.status, body: data });
+                
+                if (response.status === 200) {
+                    showToast(data.message, "success");
+                    displayMessages();
+                    socket.emit("joinRoom", { roomId });
+                } else {
+                    displayError(data.message);
+                }
+            } catch (error) {
+                console.error("Error banning user:", error);
+                displayError("Internal server error");
             }
-            console.log("Ban user response:", { status, body });
-            
-            if (status === 200) {
-                showToast(body.message, "success");
-                displayMessages();
-                socket.emit("joinRoom", { roomId });
-            } else if (status === 403) {
-                displayError(body.message);
-            } else if (status === 404) {
-                displayError(body.message);
-            } else {
-                displayError(body.message);
-            }
-        })
-        .catch(error => {
-            console.error("Error banning user:", error);
-            displayError("Internal server error");
-        });
+        }, "Updating room members...");
     } else {
         console.error("User not found in the list");
         displayError("User not found in the list");
@@ -638,33 +635,35 @@ async function transferOwnership(targetUsername) {
         return;
     }
 
-    try {
-        const response = await fetch(`/api/rooms/${roomId}/transfer`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify({ targetUsername: username.trim() })
-        });
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}/transfer`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({ targetUsername: username.trim() })
+            });
 
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast(data.message, "success");
+                await fetchRoomDetails();
+            } else {
+                displayError(data.message);
+            }
+        } catch (error) {
+            console.error("Error transferring ownership:", error);
+            displayError("Internal server error");
         }
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, "success");
-            await fetchRoomDetails();
-        } else {
-            displayError(data.message);
-        }
-    } catch (error) {
-        console.error("Error transferring ownership:", error);
-        displayError("Internal server error");
-    }
+    }, "Transferring ownership...");
 }
 
 async function leaveRoom() {
@@ -689,29 +688,31 @@ async function leaveRoom() {
         return;
     }
 
-    try {
-        const response = await fetch(`/api/rooms/${roomId}/leave`, {
-            method: "POST",
-            credentials: "include"
-        });
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}/leave`, {
+                method: "POST",
+                credentials: "include"
+            });
 
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast(data.message, "success");
+                window.location.href = "/dashboard?message=leftRoom";
+            } else {
+                displayError(data.message);
+            }
+        } catch (error) {
+            console.error("Error leaving room:", error);
+            displayError("Internal server error");
         }
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, "success");
-            window.location.href = "/dashboard?message=leftRoom";
-        } else {
-            displayError(data.message);
-        }
-    } catch (error) {
-        console.error("Error leaving room:", error);
-        displayError("Internal server error");
-    }
+    }, "Leaving room...");
 }
 
 async function renameRoom() {
@@ -732,33 +733,35 @@ async function renameRoom() {
         return;
     }
 
-    try {
-        const response = await fetch(`/api/rooms/${roomId}/rename`, {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify({ name: newName })
-        });
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}/rename`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({ name: newName })
+            });
 
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showToast(data.message, "success");
+                await fetchRoomDetails();
+            } else {
+                displayError(data.message);
+            }
+        } catch (error) {
+            console.error("Error renaming room:", error);
+            displayError("Internal server error");
         }
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showToast(data.message, "success");
-            await fetchRoomDetails();
-        } else {
-            displayError(data.message);
-        }
-    } catch (error) {
-        console.error("Error renaming room:", error);
-        displayError("Internal server error");
-    }
+    }, "Renaming room...");
 }
 
 function setupMessageScrollLoader() {

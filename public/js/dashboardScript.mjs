@@ -58,8 +58,6 @@ function updateNotificationCount(count) {
 }
 
 function loadRooms() {
-    const spinnerEl = document.getElementById("lds-ellipsis");
-    spinnerEl.style.display = "block";
     const pageInfo = document.getElementById("roomsPageInfo");
     const prevButton = document.getElementById("roomsPrevPage");
     const nextButton = document.getElementById("roomsNextPage");
@@ -73,143 +71,141 @@ function loadRooms() {
         params.set("search", searchQuery);
     }
 
-    fetch(`/api/rooms?${params.toString()}`, {
-        method: 'GET',
-        headers: {
-            "Content-Type": "application/json"
-        },
-        credentials: "include" // Send cookies for authentication
-    })
-    .then(async response => {
-        console.log("Response status:", response.status);
-        if (!response.ok) {
-            if (response.status === 401) {
-                handleAuthExpired();
-                return { rooms: [] };
-            }
-            const error = await response.json();
-            console.error("Error response:", error);
-            throw new Error(error.message || 'Failed to fetch rooms');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log("Rooms data:", data);
-        const roomsList = document.getElementById("rooms");
-        roomsList.innerHTML = "";
-        spinnerEl.style.display = "none";
-        roomsTotalPages = data.totalPages || 1;
+    withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms?${params.toString()}`, {
+                method: 'GET',
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include" // Send cookies for authentication
+            });
 
-        if (pageInfo) {
-            pageInfo.textContent = `Page ${data.page || roomsPage} of ${roomsTotalPages}`;
-        }
-        if (prevButton) {
-            prevButton.disabled = (data.page || roomsPage) <= 1;
-        }
-        if (nextButton) {
-            nextButton.disabled = (data.page || roomsPage) >= roomsTotalPages;
-        }
-
-        if (!data.rooms || !data.rooms.length) {
-            const li = document.createElement("li");
-            li.textContent = searchQuery ? "No matching rooms" : "No rooms available";
-            roomsList.appendChild(li);
-            return;
-        }
-
-        data.rooms.forEach(room => {
-            const li = document.createElement("li");
-            const roomType = room.isPrivate ? "Private room" : "Public room";
-            const isPending = Boolean(room.hasPendingRequest);
-            const isOpen = Boolean(room.isMember);
-            const statusText = room.isBanned
-                ? "Banned"
-                : isOpen
-                    ? "Joined"
-                    : isPending
-                        ? "Pending"
-                        : room.isPrivate
-                            ? "Private"
-                            : "Public";
-            const actionText = room.isBanned
-                ? "Banned"
-                : isOpen
-                    ? "Open room"
-                    : isPending
-                        ? "Cancel request"
-                        : room.isPrivate
-                            ? "Request access"
-                            : "Join room";
-
-            const details = document.createElement("div");
-            details.className = "room-card-details";
-
-            const name = document.createElement("span");
-            name.className = "room-card-name";
-            name.textContent = room.name;
-
-            const meta = document.createElement("span");
-            meta.className = "room-card-meta";
-            meta.textContent = roomType;
-
-            const status = document.createElement("span");
-            status.className = `room-card-status ${statusText.toLowerCase()}`;
-            status.textContent = statusText;
-
-            const actions = document.createElement("div");
-            actions.className = "room-card-actions";
-
-            const actionButton = document.createElement("button");
-            actionButton.className = "nav-button";
-            actionButton.textContent = actionText;
-            actionButton.disabled = room.isBanned;
-            actionButton.addEventListener("click", async event => {
-                event.stopPropagation();
-
-                if (room.isBanned) {
+            console.log("Response status:", response.status);
+            if (!response.ok) {
+                if (response.status === 401) {
+                    handleAuthExpired();
                     return;
                 }
+                const error = await response.json();
+                console.error("Error response:", error);
+                throw new Error(error.message || 'Failed to fetch rooms');
+            }
+            const data = await response.json();
+            console.log("Rooms data:", data);
+            const roomsList = document.getElementById("rooms");
+            roomsList.innerHTML = "";
+            roomsTotalPages = data.totalPages || 1;
 
-                if (isPending) {
-                    const confirmed = await confirmDialog({
-                        title: "Cancel join request",
-                        message: "Do you want to cancel this join request?",
-                        confirmText: "Cancel request",
-                        danger: true
-                    });
+            if (pageInfo) {
+                pageInfo.textContent = `Page ${data.page || roomsPage} of ${roomsTotalPages}`;
+            }
+            if (prevButton) {
+                prevButton.disabled = (data.page || roomsPage) <= 1;
+            }
+            if (nextButton) {
+                nextButton.disabled = (data.page || roomsPage) >= roomsTotalPages;
+            }
 
-                    if (!confirmed) {
+            if (!data.rooms || !data.rooms.length) {
+                const li = document.createElement("li");
+                li.textContent = searchQuery ? "No matching rooms" : "No rooms available";
+                roomsList.appendChild(li);
+                return;
+            }
+
+            data.rooms.forEach(room => {
+                const li = document.createElement("li");
+                const roomType = room.isPrivate ? "Private room" : "Public room";
+                const isPending = Boolean(room.hasPendingRequest);
+                const isOpen = Boolean(room.isMember);
+                const statusText = room.isBanned
+                    ? "Banned"
+                    : isOpen
+                        ? "Joined"
+                        : isPending
+                            ? "Pending"
+                            : room.isPrivate
+                                ? "Private"
+                                : "Public";
+                const actionText = room.isBanned
+                    ? "Banned"
+                    : isOpen
+                        ? "Open room"
+                        : isPending
+                            ? "Cancel request"
+                            : room.isPrivate
+                                ? "Request access"
+                                : "Join room";
+
+                const details = document.createElement("div");
+                details.className = "room-card-details";
+
+                const name = document.createElement("span");
+                name.className = "room-card-name";
+                name.textContent = room.name;
+
+                const meta = document.createElement("span");
+                meta.className = "room-card-meta";
+                meta.textContent = roomType;
+
+                const status = document.createElement("span");
+                status.className = `room-card-status ${statusText.toLowerCase()}`;
+                status.textContent = statusText;
+
+                const actions = document.createElement("div");
+                actions.className = "room-card-actions";
+
+                const actionButton = document.createElement("button");
+                actionButton.className = "nav-button";
+                actionButton.textContent = actionText;
+                actionButton.disabled = room.isBanned;
+                actionButton.addEventListener("click", async event => {
+                    event.stopPropagation();
+
+                    if (room.isBanned) {
                         return;
                     }
 
-                    await cancelJoinRequest(room._id);
-                    return;
-                }
+                    if (isPending) {
+                        const confirmed = await confirmDialog({
+                            title: "Cancel join request",
+                            message: "Do you want to cancel this join request?",
+                            confirmText: "Cancel request",
+                            danger: true
+                        });
 
-                if (isOpen) {
-                    window.location.href = `/room?roomId=${room._id}`;
-                    return;
-                }
+                        if (!confirmed) {
+                            return;
+                        }
 
-                await joinRoom(room._id);
+                        await cancelJoinRequest(room._id);
+                        return;
+                    }
+
+                    if (isOpen) {
+                        window.location.href = `/room?roomId=${room._id}`;
+                        return;
+                    }
+
+                    await joinRoom(room._id);
+                });
+
+                details.appendChild(name);
+                details.appendChild(meta);
+                li.appendChild(details);
+                li.appendChild(status);
+                actions.appendChild(actionButton);
+                li.appendChild(actions);
+                roomsList.appendChild(li);
             });
-
-            details.appendChild(name);
-            details.appendChild(meta);
-            li.appendChild(details);
-            li.appendChild(status);
-            actions.appendChild(actionButton);
-            li.appendChild(actions);
-            roomsList.appendChild(li);
-        });
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        const roomsList = document.getElementById("rooms");
-        roomsList.innerHTML = "";
-        spinnerEl.style.display = "none";
-        showToast(`Error loading rooms: ${error.message}`, "error");
-    });
+        } catch (error) {
+            console.error("Error:", error);
+            const roomsList = document.getElementById("rooms");
+            roomsList.innerHTML = "";
+            showToast(`Error loading rooms: ${error.message}`, "error");
+        }
+    }, "Loading rooms...");
 }
 
 function setRoomsPage(page) {
@@ -224,28 +220,30 @@ function performRoomSearch() {
 }
 
 async function cancelJoinRequest(roomId) {
-    try {
-        const response = await fetch(`/api/rooms/${roomId}/join-request/cancel`, {
-            method: "POST",
-            credentials: "include"
-        });
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}/join-request/cancel`, {
+                method: "POST",
+                credentials: "include"
+            });
 
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
-        }
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
 
-        const data = await response.json();
-        if (response.ok) {
-            showToast(data.message || "Join request cancelled", "success");
-            loadRooms();
-        } else {
-            showToast(data.message || "Unable to cancel request", "error");
+            const data = await response.json();
+            if (response.ok) {
+                showToast(data.message || "Join request cancelled", "success");
+                loadRooms();
+            } else {
+                showToast(data.message || "Unable to cancel request", "error");
+            }
+        } catch (error) {
+            console.error("Error cancelling join request:", error);
+            showToast("Error cancelling join request", "error");
         }
-    } catch (error) {
-        console.error("Error cancelling join request:", error);
-        showToast("Error cancelling join request", "error");
-    }
+    }, "Cancelling join request...");
 }
 
 async function createRoom() {
@@ -262,39 +260,41 @@ async function createRoom() {
         private: privacyValue === "private" // This will evaluate to true/false
     };
 
-    try {
-        const response = await fetch("/api/rooms/create", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            credentials: "include",
-            body: JSON.stringify(roomData)
-        });
-        const data = await response.json();
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
-        }
-        if (data.room) {
-            const shouldJoin = await confirmDialog({
-                title: "Room created",
-                message: "Do you want to join this room now?",
-                confirmText: "Join room",
-                cancelText: "Stay on dashboard"
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch("/api/rooms/create", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify(roomData)
             });
-            if (shouldJoin) {
-                joinRoom(data.room._id);
-            } else {
-                window.location.href = "/dashboard";
+            const data = await response.json();
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
             }
-        } else {
-            showToast(data.message || "Error creating room", "error");
+            if (data.room) {
+                const shouldJoin = await confirmDialog({
+                    title: "Room created",
+                    message: "Do you want to join this room now?",
+                    confirmText: "Join room",
+                    cancelText: "Stay on dashboard"
+                });
+                if (shouldJoin) {
+                    joinRoom(data.room._id);
+                } else {
+                    window.location.href = "/dashboard";
+                }
+            } else {
+                showToast(data.message || "Error creating room", "error");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            showToast("Error creating room", "error");
         }
-    } catch (error) {
-        console.error("Error:", error);
-        showToast("Error creating room", "error");
-    }
+    }, "Creating room...");
 }
 
 document.getElementById("createRoomButton").addEventListener("click", createRoom);
@@ -330,23 +330,25 @@ function joinRoom(roomId) {
         }
 
         try {
-            const response = await fetch(`/api/rooms/${roomId}/join`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                credentials: "include"
-            });
+            await withGlobalLoading(async () => {
+                const response = await fetch(`/api/rooms/${roomId}/join`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    credentials: "include"
+                });
 
-            console.log("Join room response status:", response.status);
-            if (response.status === 401) {
-                handleAuthExpired();
-                return;
-            }
+                console.log("Join room response status:", response.status);
+                if (response.status === 401) {
+                    handleAuthExpired();
+                    return;
+                }
 
-            const data = await response.json();
-            console.log("Join room response data:", data);
-            handleJoinResponse(data, roomId);
+                const data = await response.json();
+                console.log("Join room response data:", data);
+                handleJoinResponse(data, roomId);
+            }, "Joining room...");
         } catch (error) {
             console.error("Error joining room:", error);
             displayError("Error joining room");

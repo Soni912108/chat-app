@@ -61,49 +61,51 @@ function initializeSocket() {
 }
 
 async function fetchNotifications() {
-    try {
-        const pageInfo = document.getElementById("notificationsPageInfo");
-        const prevButton = document.getElementById("notificationsPrevPage");
-        const nextButton = document.getElementById("notificationsNextPage");
-        updateStatus("Fetching notifications...");
-        console.log("Fetching notifications...");
-        const response = await fetch(`/api/notifications?page=${notificationsPage}&limit=${notificationsPageSize}`, {
-            method: "GET",
-            credentials: "include" // Send cookies for authentication
-        });
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
+    await withGlobalLoading(async () => {
+        try {
+            const pageInfo = document.getElementById("notificationsPageInfo");
+            const prevButton = document.getElementById("notificationsPrevPage");
+            const nextButton = document.getElementById("notificationsNextPage");
+            updateStatus("Fetching notifications...");
+            console.log("Fetching notifications...");
+            const response = await fetch(`/api/notifications?page=${notificationsPage}&limit=${notificationsPageSize}`, {
+                method: "GET",
+                credentials: "include" // Send cookies for authentication
+            });
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to fetch notifications');
+            }
+            
+            const data = await response.json();
+            console.log("Notifications fetched:", data.notifications);
+            console.log("Number of notifications:", data.notifications.length);
+            
+            notificationsTotalPages = data.totalPages || 1;
+            updateStatus(`Showing page ${data.page || notificationsPage} of ${notificationsTotalPages}`);
+            if (pageInfo) {
+                pageInfo.textContent = `Page ${data.page || notificationsPage} of ${notificationsTotalPages}`;
+            }
+            if (prevButton) {
+                prevButton.disabled = (data.page || notificationsPage) <= 1;
+            }
+            if (nextButton) {
+                nextButton.disabled = (data.page || notificationsPage) >= notificationsTotalPages;
+            }
+            
+            displayNotifications(data.notifications);
+            updateNotificationControls(data.unreadNotifications ?? 0);
+        } catch (error) {
+            updateStatus("Error fetching notifications: " + error.message);
+            console.error("Error fetching notifications:", error);
+            displayError("Error fetching notifications: " + error.message);
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to fetch notifications');
-        }
-        
-        const data = await response.json();
-        console.log("Notifications fetched:", data.notifications);
-        console.log("Number of notifications:", data.notifications.length);
-        
-        notificationsTotalPages = data.totalPages || 1;
-        updateStatus(`Showing page ${data.page || notificationsPage} of ${notificationsTotalPages}`);
-        if (pageInfo) {
-            pageInfo.textContent = `Page ${data.page || notificationsPage} of ${notificationsTotalPages}`;
-        }
-        if (prevButton) {
-            prevButton.disabled = (data.page || notificationsPage) <= 1;
-        }
-        if (nextButton) {
-            nextButton.disabled = (data.page || notificationsPage) >= notificationsTotalPages;
-        }
-        
-        displayNotifications(data.notifications);
-        updateNotificationControls(data.unreadNotifications ?? 0);
-    } catch (error) {
-        updateStatus("Error fetching notifications: " + error.message);
-        console.error("Error fetching notifications:", error);
-        displayError("Error fetching notifications: " + error.message);
-    }
+    }, "Loading notifications...");
 }
 
 function initializeNotificationListHandlers() {
@@ -257,75 +259,81 @@ function updateNotificationControls(unreadNotifications) {
 }
 
 async function markNotificationAsRead(notificationId) {
-    try {
-        const response = await fetch(`/api/notifications/${notificationId}/read`, {
-            method: "POST",
-            credentials: "include" // Send cookies for authentication
-        });
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/notifications/${notificationId}/read`, {
+                method: "POST",
+                credentials: "include" // Send cookies for authentication
+            });
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to mark notification as read');
+            }
+            
+            console.log("Notification marked as read successfully");
+        } catch (error) {
+            console.error("Error marking notification as read:", error);
+            displayError("Error marking notification as read: " + error.message);
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to mark notification as read');
-        }
-        
-        console.log("Notification marked as read successfully");
-    } catch (error) {
-        console.error("Error marking notification as read:", error);
-        displayError("Error marking notification as read: " + error.message);
-    }
+    }, "Updating notification...");
 }
 
 async function deleteNotification(notificationId) {
-    try {
-        const response = await fetch(`/api/notifications/${notificationId}/delete`, {
-            method: "DELETE",
-            credentials: "include" // Send cookies for authentication
-        });
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/notifications/${notificationId}/delete`, {
+                method: "DELETE",
+                credentials: "include" // Send cookies for authentication
+            });
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to delete notification');
+            }
+            
+            console.log("Notification deleted successfully");
+        } catch (error) {
+            console.error("Error deleting notification:", error);
+            displayError("Error deleting notification: " + error.message);
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to delete notification');
-        }
-        
-        console.log("Notification deleted successfully");
-    } catch (error) {
-        console.error("Error deleting notification:", error);
-        displayError("Error deleting notification: " + error.message);
-    }
+    }, "Deleting notification...");
 }
 
 async function handleRoomRequestNotification(senderId, roomId, notificationId) {
-    try {
-        const response = await fetch(`/api/rooms/${roomId}/${senderId}/accept`, {
-            method: "POST",
-            credentials: "include" // Send cookies for authentication
-        });
-        if (response.status === 401) {
-            handleAuthExpired();
+    return withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}/${senderId}/accept`, {
+                method: "POST",
+                credentials: "include" // Send cookies for authentication
+            });
+            if (response.status === 401) {
+                handleAuthExpired();
+                return false;
+            }
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to accept room request');
+            }
+            
+            console.log("User added to the room successfully");
+            await markNotificationAsRead(notificationId);
+            return true;
+        } catch (error) {
+            console.error("Error accepting room request:", error);
+            displayError("Error accepting room request: " + error.message);
             return false;
         }
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to accept room request');
-        }
-        
-        console.log("User added to the room successfully");
-        await markNotificationAsRead(notificationId);
-        return true;
-    } catch (error) {
-        console.error("Error accepting room request:", error);
-        displayError("Error accepting room request: " + error.message);
-        return false;
-    }
+    }, "Accepting request...");
 }
 
 function displayError(message) {
@@ -345,28 +353,30 @@ async function markAllNotificationsAsRead() {
             return;
         }
 
-        const response = await fetch('/api/notifications/mark-all-read', {
-            method: 'POST',
-            credentials: 'include'
-        });
+        await withGlobalLoading(async () => {
+            const response = await fetch('/api/notifications/mark-all-read', {
+                method: 'POST',
+                credentials: 'include'
+            });
 
-        if (response.status === 401) {
-            handleAuthExpired();
-            return;
-        }
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to mark notifications as read');
-        }
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to mark notifications as read');
+            }
 
-        const data = await response.json();
-        showToast(data.message || "All notifications marked as read", "success");
-        notificationsPage = 1;
-        await fetchNotifications();
-        if (typeof getNotificationNumber === 'function') {
-            getNotificationNumber();
-        }
+            const data = await response.json();
+            showToast(data.message || "All notifications marked as read", "success");
+            notificationsPage = 1;
+            await fetchNotifications();
+            if (typeof getNotificationNumber === 'function') {
+                getNotificationNumber();
+            }
+        }, "Marking notifications...");
     } catch (error) {
         console.error("Error marking all notifications as read:", error);
         displayError("Error marking all notifications as read: " + error.message);

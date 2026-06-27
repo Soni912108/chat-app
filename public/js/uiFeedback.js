@@ -1,4 +1,14 @@
 (function () {
+  // Temporary visual test delay for the shared loading overlay.
+  // Remove after validating the spinner behavior in the UI.
+  const GLOBAL_LOADING_TEST_DELAY_MS = 3500;
+
+  const globalLoadingState = {
+    activeCount: 0,
+    timer: null,
+    root: null
+  };
+
   function ensureToastRoot() {
     let root = document.getElementById('toast-root');
     if (!root) {
@@ -8,6 +18,83 @@
       document.body.appendChild(root);
     }
     return root;
+  }
+
+  function ensureLoadingRoot() {
+    if (globalLoadingState.root && document.body.contains(globalLoadingState.root)) {
+      return globalLoadingState.root;
+    }
+
+    let root = document.getElementById('global-loading-root');
+    if (!root) {
+      root = document.createElement('div');
+      root.id = 'global-loading-root';
+      root.className = 'global-loading-root';
+      root.innerHTML = `
+        <div class="global-loading-overlay" role="status" aria-live="polite" aria-busy="true">
+          <div class="global-loading-panel">
+            <div class="lds-spinner global-loading-spinner"><div></div><div></div><div></div><div></div></div>
+            <p class="global-loading-text">Loading...</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(root);
+    }
+
+    globalLoadingState.root = root;
+    return root;
+  }
+
+  function showGlobalLoading(message = 'Loading...') {
+    const root = ensureLoadingRoot();
+    const overlay = root.querySelector('.global-loading-overlay');
+    const text = root.querySelector('.global-loading-text');
+
+    if (text) {
+      text.textContent = message;
+    }
+
+    if (overlay) {
+      if (globalLoadingState.timer) {
+        window.clearTimeout(globalLoadingState.timer);
+      }
+
+      globalLoadingState.timer = window.setTimeout(() => {
+        globalLoadingState.timer = null;
+        if (globalLoadingState.activeCount > 0) {
+          overlay.classList.add('is-visible');
+        }
+      }, GLOBAL_LOADING_TEST_DELAY_MS);
+    }
+  }
+
+  function hideGlobalLoading() {
+    if (globalLoadingState.timer) {
+      window.clearTimeout(globalLoadingState.timer);
+      globalLoadingState.timer = null;
+    }
+
+    if (!globalLoadingState.root) {
+      return;
+    }
+
+    const overlay = globalLoadingState.root.querySelector('.global-loading-overlay');
+    if (overlay) {
+      overlay.classList.remove('is-visible');
+    }
+  }
+
+  function beginGlobalLoading(message) {
+    globalLoadingState.activeCount += 1;
+    showGlobalLoading(message);
+  }
+
+  function endGlobalLoading() {
+    globalLoadingState.activeCount = Math.max(0, globalLoadingState.activeCount - 1);
+
+    if (globalLoadingState.activeCount === 0) {
+      hideGlobalLoading();
+    }
   }
 
   function showToast(message, type = 'info') {
@@ -149,6 +236,22 @@
   window.showToast = showToast;
   window.confirmDialog = confirmDialog;
   window.promptDialog = promptDialog;
+  window.showGlobalLoading = showGlobalLoading;
+  window.hideGlobalLoading = hideGlobalLoading;
+  window.withGlobalLoading = function (callback, message) {
+    beginGlobalLoading(message);
+    try {
+      const result = Promise.resolve(callback());
+      return new Promise((resolve, reject) => {
+        window.setTimeout(() => {
+          result.then(resolve).catch(reject).finally(endGlobalLoading);
+        }, GLOBAL_LOADING_TEST_DELAY_MS);
+      });
+    } catch (error) {
+      endGlobalLoading();
+      throw error;
+    }
+  };
   window.handleAuthExpired = function () {
     if (window.__authExpiredRedirecting) {
       return;
