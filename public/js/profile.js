@@ -33,7 +33,7 @@ async function fetchProfileInfo() {
     }
     await withGlobalLoading(async () => {
         try {
-            const b = await fetch('/api/users/me/profile', {
+            const b = await fetch('/api/auth/me/profile', {
                 method: "GET",
                 credentials: "include" // Send cookies for authentication
             });

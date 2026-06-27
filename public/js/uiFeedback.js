@@ -1,8 +1,4 @@
 (function () {
-  // Temporary visual test delay for the shared loading overlay.
-  // Remove after validating the spinner behavior in the UI.
-  const GLOBAL_LOADING_TEST_DELAY_MS = 3500;
-
   const globalLoadingState = {
     activeCount: 0,
     timer: null,
@@ -55,16 +51,7 @@
     }
 
     if (overlay) {
-      if (globalLoadingState.timer) {
-        window.clearTimeout(globalLoadingState.timer);
-      }
-
-      globalLoadingState.timer = window.setTimeout(() => {
-        globalLoadingState.timer = null;
-        if (globalLoadingState.activeCount > 0) {
-          overlay.classList.add('is-visible');
-        }
-      }, GLOBAL_LOADING_TEST_DELAY_MS);
+      overlay.classList.add('is-visible');
     }
   }
 
@@ -242,11 +229,16 @@
     beginGlobalLoading(message);
     try {
       const result = Promise.resolve(callback());
-      return new Promise((resolve, reject) => {
-        window.setTimeout(() => {
-          result.then(resolve).catch(reject).finally(endGlobalLoading);
-        }, GLOBAL_LOADING_TEST_DELAY_MS);
-      });
+      return result.then(
+        value => {
+          endGlobalLoading();
+          return value;
+        },
+        error => {
+          endGlobalLoading();
+          throw error;
+        }
+      );
     } catch (error) {
       endGlobalLoading();
       throw error;
