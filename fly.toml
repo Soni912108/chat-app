@@ -1,17 +1,31 @@
+app = 'chatapp-fly'
+primary_region = 'ams'
+
+[build]
 app = "chat-app"
 primary_region = "fra"
 
-[build]
-  # Add a Dockerfile later if you want full control over the runtime image.
-  # Fly can also use its Node buildpack flow if you launch the app from the CLI.
 
 [env]
   NODE_ENV = "production"
   PORT = "3001"
 
+
 [http_service]
   internal_port = 3001
   force_https = true
+
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256
+
   auto_start_machines = true
   auto_stop_machines = "off"
   min_machines_running = 1
