@@ -15,5 +15,8 @@ window.createAppSocket = function createAppSocket() {
         return createSocketStub();
     }
 
-    return io({ path: config.socketPath || "/socket.io" });
+    return io({
+        path: config.socketPath || "/socket.io",
+        transports: ["websocket"]
+    });
 };

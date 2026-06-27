@@ -150,7 +150,9 @@ app.use((err, req, res, next) => {
   }
 });
 
-app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
+if (isVercel) {
+  app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
+}
 
 app.get('/config.js', (req, res) => {
   res.type('application/javascript').send(
