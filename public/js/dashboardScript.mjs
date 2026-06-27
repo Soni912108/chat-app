@@ -70,7 +70,7 @@ function loadRooms() {
         params.set("search", searchQuery);
     }
 
-    withGlobalLoading(async () => {
+    return withGlobalLoading(async () => {
         try {
             const response = await fetch(`/api/rooms?${params.toString()}`, {
                 method: 'GET',
@@ -259,6 +259,8 @@ async function createRoom() {
         private: privacyValue === "private" // This will evaluate to true/false
     };
 
+    let createdRoom = null;
+
     await withGlobalLoading(async () => {
         try {
             const response = await fetch("/api/rooms/create", {
@@ -275,17 +277,7 @@ async function createRoom() {
                 return;
             }
             if (data.room) {
-                const shouldJoin = await confirmDialog({
-                    title: "Room created",
-                    message: "Do you want to join this room now?",
-                    confirmText: "Join room",
-                    cancelText: "Stay on dashboard"
-                });
-                if (shouldJoin) {
-                    joinRoom(data.room._id);
-                } else {
-                    window.location.href = "/dashboard";
-                }
+                createdRoom = data.room;
             } else {
                 showToast(data.message || "Error creating room", "error");
             }
@@ -294,6 +286,24 @@ async function createRoom() {
             showToast("Error creating room", "error");
         }
     }, "Creating room...");
+
+    if (!createdRoom) {
+        return;
+    }
+
+    const shouldJoin = await confirmDialog({
+        title: "Room created",
+        message: "Do you want to join this room now?",
+        confirmText: "Join room",
+        cancelText: "Stay on dashboard"
+    });
+
+    if (shouldJoin) {
+        window.location.href = `/room?roomId=${createdRoom._id}`;
+        return;
+    }
+
+    await loadRooms();
 }
 
 document.getElementById("createRoomButton").addEventListener("click", createRoom);
