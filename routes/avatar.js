@@ -35,55 +35,55 @@ const upload = multer({
     fileFilter: fileFilter,
 });
 
-router.post('/uploadAvatar', auth, upload.single('avatar'), async (req, res) => {
+async function handleAvatarUpload(req, res) {
     if (!req.file) {
         return res.status(400).json({ message: 'No file selected!' });
     }
 
     try {
-        // Upload to Cloudinary directly from buffer
         const uploadStream = cloudinary.uploader.upload_stream(
             {
-                folder: 'chat-app/avatars', // Organize in Cloudinary dashboard
-                public_id: `avatar_${req.user.id}`, // Unique ID per user
-                overwrite: true, // Replace old avatar with same user ID
+                folder: 'chat-app/avatars',
+                public_id: `avatar_${req.user.id}`,
+                overwrite: true,
                 resource_type: 'auto',
-                quality: 'auto', // Cloudinary auto-optimizes quality
-                fetch_format: 'auto', // Serve optimal format for client browser
-                width: 300, // Resize to 300x300 for consistency
+                quality: 'auto',
+                fetch_format: 'auto',
+                width: 300,
                 height: 300,
                 crop: 'fill',
-                gravity: 'face', // Smart crop centered on face if detected
+                gravity: 'face',
             },
             async (error, result) => {
                 if (error) {
-                    logger.error('routes/avatar:uploadCloudinary', error.message);
+                    logger.error('routes/uploads:avatarCloudinary', error.message);
                     return res.status(500).json({ message: 'Failed to upload avatar' });
                 }
 
                 try {
-                    // Update user's avatar URL in database
                     const user = await User.findById(req.user.id);
-                    user.avatar = result.secure_url; // Use secure HTTPS URL
+                    user.avatar = result.secure_url;
                     await user.save();
-                    
-                    res.status(200).json({ 
+
+                    res.status(200).json({
                         avatar: result.secure_url,
                         message: 'Avatar uploaded successfully'
                     });
                 } catch (dbError) {
-                    logger.error('routes/avatar:updateUser', dbError.message);
+                    logger.error('routes/uploads:avatarDatabase', dbError.message);
                     res.status(500).json({ message: 'Avatar uploaded but database update failed' });
                 }
             }
         );
 
-        // Pipe file buffer to upload stream
         uploadStream.end(req.file.buffer);
     } catch (err) {
-        logger.error('routes/avatar:upload', err.message);
+        logger.error('routes/uploads:avatar', err.message);
         res.status(500).json({ message: 'Server error during avatar upload' });
     }
-});
+}
+
+router.post('/avatar', auth, upload.single('avatar'), handleAvatarUpload);
+router.post('/uploadAvatar', auth, upload.single('avatar'), handleAvatarUpload);
 
 module.exports = router;

@@ -57,7 +57,7 @@ npm run dev
 ```
 User selects image
     ↓
-File sent to /api/fileUpload/uploadAvatar
+File sent to /api/uploads/avatar
     ↓
 Multer receives to memory buffer
     ↓
@@ -82,7 +82,7 @@ Frontend displays via CDN
 
 ### File Location: `routes/avatar.js`
 
-**Upload Endpoint:** `POST /api/fileUpload/uploadAvatar`
+**Upload Endpoint:** `POST /api/uploads/avatar`
 - Requires JWT authentication
 - Accepts multipart form-data with `avatar` field
 - File size limit: 5MB

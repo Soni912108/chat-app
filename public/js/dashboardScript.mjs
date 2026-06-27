@@ -2,23 +2,22 @@
 // Check if user is authenticated before loading dashboard content
 async function checkAuthentication() {
     try {
-        console.log("Checking authentication status...");
-        
-        const response = await fetch('/api/auth/verify', {
+
+        const response = await fetch('/api/auth/me', {
             method: 'GET',
             credentials: 'include'
         });
         
         if (!response.ok) {
-            console.log("Authentication failed, redirecting to login");
+
             handleAuthExpired();
             return false;
         }
         
-        console.log("Authentication successful, loading dashboard");
+
         return true;
     } catch (error) {
-        console.error("Error checking authentication:", error);
+
         handleAuthExpired();
         return false;
     }
@@ -34,17 +33,17 @@ function initializeSocket() {
     socket = io({ path: '/socket.io' });
     
     socket.on('connect', () => {
-        console.log('Connected to server for dashboard notifications');
+
     });
     
     socket.on('notification', (unreadCount) => {
-        console.log('New notification received on dashboard, unread count:', unreadCount);
+
         // Update notification count if the element exists
         updateNotificationCount(unreadCount);
     });
     
     socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+
     });
 }
 
@@ -81,18 +80,18 @@ function loadRooms() {
                 credentials: "include" // Send cookies for authentication
             });
 
-            console.log("Response status:", response.status);
+
             if (!response.ok) {
                 if (response.status === 401) {
                     handleAuthExpired();
                     return;
                 }
                 const error = await response.json();
-                console.error("Error response:", error);
+
                 throw new Error(error.message || 'Failed to fetch rooms');
             }
             const data = await response.json();
-            console.log("Rooms data:", data);
+
             const roomsList = document.getElementById("rooms");
             roomsList.innerHTML = "";
             roomsTotalPages = data.totalPages || 1;
@@ -200,7 +199,7 @@ function loadRooms() {
                 roomsList.appendChild(li);
             });
         } catch (error) {
-            console.error("Error:", error);
+
             const roomsList = document.getElementById("rooms");
             roomsList.innerHTML = "";
             showToast(`Error loading rooms: ${error.message}`, "error");
@@ -240,7 +239,7 @@ async function cancelJoinRequest(roomId) {
                 showToast(data.message || "Unable to cancel request", "error");
             }
         } catch (error) {
-            console.error("Error cancelling join request:", error);
+
             showToast("Error cancelling join request", "error");
         }
     }, "Cancelling join request...");
@@ -291,7 +290,7 @@ async function createRoom() {
                 showToast(data.message || "Error creating room", "error");
             }
         } catch (error) {
-            console.error("Error:", error);
+
             showToast("Error creating room", "error");
         }
     }, "Creating room...");
@@ -317,7 +316,7 @@ document.getElementById("roomSearchInput").addEventListener("keydown", event => 
 });
 
 function joinRoom(roomId) {
-    console.log("Attempting to join room:", roomId);
+
     confirmDialog({
         title: "Join room",
         message: "Do you want to join this room?",
@@ -339,18 +338,18 @@ function joinRoom(roomId) {
                     credentials: "include"
                 });
 
-                console.log("Join room response status:", response.status);
+
                 if (response.status === 401) {
                     handleAuthExpired();
                     return;
                 }
 
                 const data = await response.json();
-                console.log("Join room response data:", data);
+
                 handleJoinResponse(data, roomId);
             }, "Joining room...");
         } catch (error) {
-            console.error("Error joining room:", error);
+
             displayError("Error joining room");
         }
     });

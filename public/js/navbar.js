@@ -12,7 +12,7 @@ function applyTheme(settings) {
 
 async function loadTheme() {
     try {
-        const response = await fetch('/api/user/settings', {
+        const response = await fetch('/api/users/me/settings', {
             method: 'GET',
             credentials: 'include'
         });
@@ -39,7 +39,7 @@ async function loadCurrentUser() {
     }
 
     try {
-        const response = await fetch('/api/auth/verify', {
+        const response = await fetch('/api/auth/me', {
             method: 'GET',
             credentials: 'include'
         });

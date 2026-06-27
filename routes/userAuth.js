@@ -87,7 +87,7 @@ router.post('/login', async (req, res) => {
 
 
 // Route to change password
-router.post('/changePassword', auth, async (req, res) => {
+async function changePassword(req, res) {
   try {
     const { oldPassword, newPassword } = req.body;
 
@@ -112,20 +112,23 @@ router.post('/changePassword', auth, async (req, res) => {
     logger.error('routes/auth:changePassword', error.message);
     res.status(500).json({ message: 'Server error' });
   }
-});
+}
+
+router.post('/changePassword', auth, changePassword);
+router.post('/me/password', auth, changePassword);
 
 
 
 // Route to display profileInfo to the logged in user
-router.get('/profileInfo/:userId', auth, async (req, res) => {
+async function getProfileInfo(req, res) {
   try {
-    const userId = req.params.userId;
+    const userId = req.params.userId || req.user.id;
+    const isLegacyRoute = Boolean(req.params.userId);
 
-    if (userId !== req.user.id) {
+    if (isLegacyRoute && userId !== req.user.id) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
-    // Retrieve user from database
     const user = await User.findById(userId);
 
     if (!user) {
@@ -182,7 +185,10 @@ router.get('/profileInfo/:userId', auth, async (req, res) => {
     logger.error('routes/auth:profileInfo', error.message);
     res.status(500).json({ message: 'Server error' });
   }
-});
+}
+
+router.get('/profileInfo/:userId', auth, getProfileInfo);
+router.get('/me/profile', auth, getProfileInfo);
 
 
 // Route to logout user (clear authentication cookie)
@@ -203,7 +209,7 @@ router.post('/logout', (req, res) => {
 });
 
 // Route to verify authentication token
-router.get('/verify', auth, async (req, res) => {
+async function verifyAuth(req, res) {
   try {
     // If we reach here, the auth middleware has already verified the token
     // and req.user contains the user information
@@ -225,6 +231,9 @@ router.get('/verify', auth, async (req, res) => {
     logger.error('routes/auth:verify', error.message);
     res.status(500).json({ message: 'Server error' });
   }
-});
+}
+
+router.get('/verify', auth, verifyAuth);
+router.get('/me', auth, verifyAuth);
 
 module.exports = router;

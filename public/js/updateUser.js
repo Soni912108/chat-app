@@ -1,23 +1,22 @@
 // Check if user is authenticated before loading updateUser content
 async function checkAuthentication() {
     try {
-        console.log("Checking authentication status...");
-        
-        const response = await fetch('/api/auth/verify', {
+
+        const response = await fetch('/api/auth/me', {
             method: 'GET',
             credentials: 'include'
         });
         
         if (!response.ok) {
-            console.log("Authentication failed, redirecting to login");
+
             handleAuthExpired();
             return false;
         }
         
-        console.log("Authentication successful, loading updateUser page");
+
         return true;
     } catch (error) {
-        console.error("Error checking authentication:", error);
+
         handleAuthExpired();
         return false;
     }
@@ -38,7 +37,7 @@ function initializePage() {
     }
     await withGlobalLoading(async () => {
         try {
-            const a = await fetch("/api/auth/changePassword", {
+            const a = await fetch("/api/users/me/password", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"
@@ -61,7 +60,7 @@ function initializePage() {
                 showToast(d.message || "Error changing password. Please try again.", "error");
             }
         } catch (a) {
-            console.error("Error changing password:", a);
+
             showToast("Error changing password. Please try again.", "error");
         }
     }, "Changing password...");
@@ -72,7 +71,7 @@ function initializePage() {
     b.append("avatar", c.files[0]);
     await withGlobalLoading(async () => {
         try {
-            const a = await fetch("/api/fileUpload/uploadAvatar", {
+            const a = await fetch("/api/uploads/avatar", {
                 method: "POST",
                 credentials: "include", // Send cookies for authentication
                 body: b
@@ -88,7 +87,7 @@ function initializePage() {
             showToast("Image updated successfully", "success");
             window.location.href = "/profile";
         } catch (a) {
-            console.error("Error uploading avatar:", a);
+
             showToast(a.message || "Error uploading avatar", "error");
         }
     }, "Uploading avatar...");

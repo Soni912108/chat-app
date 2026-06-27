@@ -158,8 +158,10 @@ server.listen(PORT, () => {
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/messages', messagesRoutes);
-app.use('/api/fileUpload', avatarRoutes); // Use avatar routes
-app.use('/api/user', settingsRoutes); // Use settings routes
+app.use('/api/uploads', avatarRoutes); // Use upload routes
+app.use('/api/fileUpload', avatarRoutes); // Legacy alias for avatar routes
+app.use('/api/users', settingsRoutes); // Use settings routes
+app.use('/api/user', settingsRoutes); // Legacy alias for settings routes
 app.use('/api/notifications', notificationRoutes);
 
 // Setup Socket.io handlers

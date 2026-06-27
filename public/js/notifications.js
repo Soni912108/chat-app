@@ -2,26 +2,25 @@
 async function checkAuthentication() {
     try {
         updateStatus("Checking authentication status...");
-        console.log("Checking authentication status...");
-        
-        const response = await fetch('/api/auth/verify', {
+
+        const response = await fetch('/api/auth/me', {
             method: 'GET',
             credentials: 'include'
         });
         
         if (!response.ok) {
             updateStatus("Authentication failed, redirecting to login");
-            console.log("Authentication failed, redirecting to login");
+
             handleAuthExpired();
             return false;
         }
         
         updateStatus("Authentication successful, loading notifications");
-        console.log("Authentication successful, loading notifications");
+
         return true;
     } catch (error) {
         updateStatus("Error checking authentication: " + error.message);
-        console.error("Error checking authentication:", error);
+
         handleAuthExpired();
         return false;
     }
@@ -33,7 +32,7 @@ function updateStatus(message) {
     if (statusText) {
         statusText.textContent = message;
     }
-    console.log("Status:", message);
+
 }
 
 // Initialize socket connection for real-time notifications
@@ -46,17 +45,17 @@ function initializeSocket() {
     socket = io({ path: '/socket.io' });
     
     socket.on('connect', () => {
-        console.log('Connected to server for notifications');
+
     });
     
     socket.on('notification', (unreadCount) => {
-        console.log('New notification received, refreshing notifications list');
+
         // Refresh the notifications list when a new notification arrives
         fetchNotifications();
     });
     
     socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+
     });
 }
 
@@ -67,7 +66,7 @@ async function fetchNotifications() {
             const prevButton = document.getElementById("notificationsPrevPage");
             const nextButton = document.getElementById("notificationsNextPage");
             updateStatus("Fetching notifications...");
-            console.log("Fetching notifications...");
+
             const response = await fetch(`/api/notifications?page=${notificationsPage}&limit=${notificationsPageSize}`, {
                 method: "GET",
                 credentials: "include" // Send cookies for authentication
@@ -83,9 +82,8 @@ async function fetchNotifications() {
             }
             
             const data = await response.json();
-            console.log("Notifications fetched:", data.notifications);
-            console.log("Number of notifications:", data.notifications.length);
-            
+
+
             notificationsTotalPages = data.totalPages || 1;
             updateStatus(`Showing page ${data.page || notificationsPage} of ${notificationsTotalPages}`);
             if (pageInfo) {
@@ -102,7 +100,7 @@ async function fetchNotifications() {
             updateNotificationControls(data.unreadNotifications ?? 0);
         } catch (error) {
             updateStatus("Error fetching notifications: " + error.message);
-            console.error("Error fetching notifications:", error);
+
             displayError("Error fetching notifications: " + error.message);
         }
     }, "Loading notifications...");
@@ -184,22 +182,20 @@ function initializeNotificationListHandlers() {
 }
 
 function displayNotifications(notifications) {
-    console.log("displayNotifications called with:", notifications);
-    
+
     const notificationsList = document.getElementById("notifications-list");
-    console.log("Found notifications list element:", notificationsList);
-    
+
     if (!notificationsList) {
-        console.error("Notifications list element not found");
+
         return;
     }
     
     // Clear the list first
-    console.log("Clearing notifications list...");
+
     notificationsList.innerHTML = "";
     
     if (notifications.length === 0) {
-        console.log("No notifications to display, showing 'no notifications' message");
+
         const noNotificationsItem = document.createElement("li");
         noNotificationsItem.textContent = "No new notifications.";
         noNotificationsItem.style.color = "green";
@@ -207,17 +203,15 @@ function displayNotifications(notifications) {
         return;
     }
     
-    console.log(`Displaying ${notifications.length} notifications...`);
-    
+
     notifications.forEach((notification, index) => {
-        console.log(`Creating notification item ${index + 1}:`, notification.message);
-        
+
         const notificationItem = document.createElement("li");
         notificationItem.textContent = notification.message;
         
         // Add accept button for join requests
         if (notification.message.includes("wants to join your private room") && !notification.read) {
-            console.log("Adding accept button for join request");
+
             const acceptButton = document.createElement("button");
             acceptButton.textContent = "Accept Request";
             acceptButton.dataset.action = "accept-request";
@@ -244,10 +238,10 @@ function displayNotifications(notifications) {
         notificationItem.appendChild(deleteButton);
         
         notificationsList.appendChild(notificationItem);
-        console.log(`Notification item ${index + 1} added to DOM`);
+
     });
     
-    console.log("Finished displaying all notifications");
+
 }
 
 function updateNotificationControls(unreadNotifications) {
@@ -275,9 +269,9 @@ async function markNotificationAsRead(notificationId) {
                 throw new Error(errorData.message || 'Failed to mark notification as read');
             }
             
-            console.log("Notification marked as read successfully");
+
         } catch (error) {
-            console.error("Error marking notification as read:", error);
+
             displayError("Error marking notification as read: " + error.message);
         }
     }, "Updating notification...");
@@ -300,9 +294,9 @@ async function deleteNotification(notificationId) {
                 throw new Error(errorData.message || 'Failed to delete notification');
             }
             
-            console.log("Notification deleted successfully");
+
         } catch (error) {
-            console.error("Error deleting notification:", error);
+
             displayError("Error deleting notification: " + error.message);
         }
     }, "Deleting notification...");
@@ -325,11 +319,11 @@ async function handleRoomRequestNotification(senderId, roomId, notificationId) {
                 throw new Error(errorData.message || 'Failed to accept room request');
             }
             
-            console.log("User added to the room successfully");
+
             await markNotificationAsRead(notificationId);
             return true;
         } catch (error) {
-            console.error("Error accepting room request:", error);
+
             displayError("Error accepting room request: " + error.message);
             return false;
         }
@@ -378,16 +372,16 @@ async function markAllNotificationsAsRead() {
             }
         }, "Marking notifications...");
     } catch (error) {
-        console.error("Error marking all notifications as read:", error);
+
         displayError("Error marking all notifications as read: " + error.message);
     }
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-    console.log("Notifications page loaded, checking authentication...");
+
     const isAuthenticated = await checkAuthentication();
     if (isAuthenticated) {
-        console.log("Authentication successful, fetching notifications...");
+
         initializeNotificationListHandlers();
         fetchNotifications();
         initializeSocket(); // Initialize socket connection

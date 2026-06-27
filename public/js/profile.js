@@ -3,15 +3,14 @@ let currentUserId = null;
 
 async function checkAuthentication() {
     try {
-        console.log("Checking authentication status...");
-        
-        const response = await fetch('/api/auth/verify', {
+
+        const response = await fetch('/api/auth/me', {
             method: 'GET',
             credentials: 'include'
         });
         
         if (!response.ok) {
-            console.log("Authentication failed, redirecting to login");
+
             handleAuthExpired();
             return false;
         }
@@ -20,7 +19,7 @@ async function checkAuthentication() {
         currentUserId = data.user.id;
         return true;
     } catch (error) {
-        console.error("Error checking authentication:", error);
+
         handleAuthExpired();
         return false;
     }
@@ -34,7 +33,7 @@ async function fetchProfileInfo() {
     }
     await withGlobalLoading(async () => {
         try {
-            const b = await fetch(`/api/auth/profileInfo/${a}`, {
+            const b = await fetch('/api/users/me/profile', {
                 method: "GET",
                 credentials: "include" // Send cookies for authentication
             });
@@ -49,7 +48,7 @@ async function fetchProfileInfo() {
             const c = await b.json();
             displayProfileInfo(c)
         } catch (a) {
-            console.error("Error fetching profile info:", a);
+
             showToast("Error fetching profile info", "error");
         }
     }, "Loading profile...");
@@ -99,7 +98,7 @@ function joinRoom(a) {
             if (!b) return;
             b.message ? "You are banned from this room" === b.message ? displayError("You are banned from this room") : window.location.href = `/room?roomId=${a}` : displayError("Error joining room: " + b.message)
         }).catch(a => {
-            console.error("Error:", a), displayError("Error joining room")
+
         })
     }, "Joining room...");
 }

@@ -16,15 +16,14 @@ const maxRetries = 5;
 // Check if user is authenticated before loading room content
 async function checkAuthentication() {
     try {
-        console.log("Checking authentication status...");
-        
-        const response = await fetch('/api/auth/verify', {
+
+        const response = await fetch('/api/auth/me', {
             method: 'GET',
             credentials: 'include'
         });
         
         if (!response.ok) {
-            console.log("Authentication failed, redirecting to login");
+
             handleAuthExpired();
             return false;
         }
@@ -34,7 +33,7 @@ async function checkAuthentication() {
         currentUsername = data.user.username;
         return true;
     } catch (error) {
-        console.error("Error checking authentication:", error);
+
         handleAuthExpired();
         return false;
     }
@@ -45,14 +44,13 @@ async function checkAuthentication() {
 // to the dashboard with appropriate error messages
 async function checkRoomAccess() {
     if (!roomId) {
-        console.log("No room ID provided, redirecting to dashboard");
+
         window.location.href = "/dashboard?message=noRoomId";
         return false;
     }
 
     try {
-        console.log("Checking room access for room:", roomId);
-        
+
         const response = await fetch(`/api/rooms/${roomId}`, {
             method: "GET",
             headers: {
@@ -64,7 +62,7 @@ async function checkRoomAccess() {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             if (response.status === 404) {
-                console.log("Room not found, redirecting to dashboard");
+
                 window.location.href = "/dashboard?message=roomNotFound";
                 return false;
             } else if (response.status === 403) {
@@ -72,7 +70,7 @@ async function checkRoomAccess() {
                 window.location.href = `/dashboard?message=${redirectMessage}`;
                 return false;
             } else {
-                console.log("Unauthorized access, redirecting to login");
+
                 handleAuthExpired();
                 return false;
             }
@@ -80,15 +78,15 @@ async function checkRoomAccess() {
 
         const data = await response.json();
         if (!data.room) {
-            console.log("Room data not found, redirecting to dashboard");
+
             window.location.href = "/dashboard?message=roomNotFound";
             return false;
         }
 
-        console.log("Room access granted, loading room content");
+
         return true;
     } catch (error) {
-        console.error("Error checking room access:", error);
+
         window.location.href = "/dashboard?message=error";
         return false;
     }
@@ -160,7 +158,7 @@ function renderMessages(messages, { replace = false, prepend = false } = {}) {
 }
 
 function fetchRoomDetails() {
-    console.log("Fetching room details for room:", roomId);
+
     withGlobalLoading(async () => {
         try {
             const response = await fetch(`/api/rooms/${roomId}`, {
@@ -177,8 +175,7 @@ function fetchRoomDetails() {
             }
 
             const data = await response.json();
-            console.log("Room details response:", data);
-            
+
             if (data.room) {
                 document.getElementById("roomTitle").textContent = `Room - ${data.room.name}`;
                 document.getElementById("roomName").textContent = `Room - ${data.room.name}`;
@@ -199,16 +196,16 @@ function fetchRoomDetails() {
                     userList.appendChild(listItem);
                 });
             } else {
-                console.error("Error fetching room details:", data.message);
+
             }
         } catch (error) {
-            console.error("Error fetching room details:", error);
+
         }
     }, "Loading room...");
 }
 
 function displayMessages() {
-    console.log("Fetching messages for room:", roomId);
+
     const messagesContainer = document.getElementById("messages");
     if (messagesContainer) {
         messagesContainer.innerHTML = "";
@@ -237,7 +234,6 @@ async function fetchMessages(before = null, mode = "replace") {
             credentials: "include"
         });
 
-        console.log("Messages response status:", response.status);
 
         if (!response.ok) {
             if (response.status === 403) {
@@ -264,7 +260,6 @@ async function fetchMessages(before = null, mode = "replace") {
         }
 
         const data = await response.json();
-        console.log("Messages data:", data);
 
         const tuples = Array.isArray(data.messageTuples) ? data.messageTuples : [];
         hasMoreMessages = Boolean(data.hasMore);
@@ -336,7 +331,7 @@ socket.on("connect", async () => {
     socket.emit("joinRoom", { roomId });
     setupMessageScrollLoader();
 }), socket.on("connect_error", (error) => {
-    console.error("Connection error:", error);
+
     retryCount++;
     
     const messagesContainer = document.getElementById("messages");
@@ -357,15 +352,14 @@ socket.on("connect", async () => {
         showTroubleshootingTips();
     } else {
         retryTimeout = setTimeout(() => {
-            console.log("Attempting to reconnect...");
+
             socket.connect();
         }, 5000);
     }
 });
 
 socket.on("disconnect", () => {
-    console.log("Disconnected from server");
-    
+
     const messagesContainer = document.getElementById("messages");
     let connectionStatus = document.getElementById("connection-status");
     
@@ -382,7 +376,7 @@ socket.on("disconnect", () => {
     
     if (retryCount < maxRetries) {
         retryTimeout = setTimeout(() => {
-            console.log("Attempting to reconnect...");
+
             socket.connect();
         }, 5000);
     } else {
@@ -391,8 +385,7 @@ socket.on("disconnect", () => {
 });
 
 function showTroubleshootingTips() {
-    console.log("Showing troubleshooting tips");
-    
+
     const messagesContainer = document.getElementById("messages");
     let connectionStatus = document.getElementById("connection-status");
     
@@ -416,8 +409,7 @@ function showTroubleshootingTips() {
     scrollToBottom();
 }
 socket.on("message", (messageData) => {
-    console.log("Message received:", messageData);
-    
+
     const messagesContainer = document.getElementById("messages");
     if (!messagesContainer) {
         return;
@@ -436,7 +428,7 @@ socket.on("message", (messageData) => {
     scrollToBottom();
 });
 socket.on("updateUserList", (users) => {
-    console.log("Updating user list:", users);
+
     const userList = document.getElementById("userList");
     userList.innerHTML = "";
     
@@ -446,23 +438,23 @@ socket.on("updateUserList", (users) => {
         userList.appendChild(listItem);
     });
 }), socket.on("error", (errorMessage) => {
-    console.error("Socket error received:", errorMessage);
+
     showToast(errorMessage, "error");
     
     if (errorMessage.includes("banned")) {
-        console.log("User banned, redirecting to dashboard");
+
         window.location.href = "/dashboard?message=userBanned";
     } else if (errorMessage.includes("Access denied") || errorMessage.includes("not a member")) {
         window.location.href = "/dashboard?message=accessDenied";
     }
 }), socket.on("userBanned", (message) => {
-    console.log("User banned message received:", message);
+
     showToast(message, "error");
     window.location.href = "/dashboard?message=userBanned";
 });
 socket.on("roomOwnershipTransferred", (payload) => {
     const message = typeof payload === "string" ? payload : payload?.message;
-    console.log("Room ownership transferred:", payload);
+
     if (message) {
         showToast(message, "info");
     }
@@ -470,14 +462,14 @@ socket.on("roomOwnershipTransferred", (payload) => {
 });
 socket.on("roomRenamed", (payload) => {
     const message = typeof payload === "string" ? payload : payload?.message;
-    console.log("Room renamed:", payload);
+
     if (message) {
         showToast(message, "info");
     }
     fetchRoomDetails();
 });
 socket.on("reloadingPage", (users) => {
-    console.log("Reloading page with users:", users);
+
     const userList = document.getElementById("userList");
     userList.innerHTML = "";
     
@@ -508,12 +500,12 @@ function sendMessage() {
     }
 }
 document.getElementById("messageInput").addEventListener("input", () => {
-    console.log("User typing, emitting typing event");
+
     socket.emit("typing", roomId);
 });
 
 socket.on("typing", () => {
-    console.log("Typing indicator received");
+
     const typingIndicator = document.getElementById("typingIndicator");
     typingIndicator.textContent = "Someone is typing...";
     
@@ -523,14 +515,13 @@ socket.on("typing", () => {
 });
 async function deleteRoom() {
     if (!roomId) {
-        console.error("Missing room ID");
+
         return;
     }
     
     await withGlobalLoading(async () => {
         try {
-            console.log("Attempting to delete room:", roomId);
-            
+
             const response = await fetch(`/api/rooms/${roomId}`, {
                 method: "DELETE",
                 credentials: "include"
@@ -541,8 +532,7 @@ async function deleteRoom() {
             }
             
             const data = await response.json();
-            console.log("Delete room response:", data);
-            
+
             if (data.message === "Room and associated messages deleted successfully") {
                 showToast("Room deleted successfully", "success");
                 window.location.href = "/dashboard";
@@ -550,7 +540,7 @@ async function deleteRoom() {
                 displayError(data.message);
             }
         } catch (error) {
-            console.error("Error deleting room:", error);
+
             displayError("Error deleting room");
         }
     }, "Deleting room...");
@@ -571,8 +561,7 @@ function banUser(username) {
         return;
     }
     
-    console.log("Attempting to ban user:", username, "from room:", roomId);
-    
+
     const userList = document.getElementById("userList");
     const userElement = Array.from(userList.getElementsByTagName("li"))
         .find(li => li.textContent.trim() === username);
@@ -592,8 +581,7 @@ function banUser(username) {
                     handleAuthExpired();
                     return;
                 }
-                console.log("Ban user response:", { status: response.status, body: data });
-                
+
                 if (response.status === 200) {
                     showToast(data.message, "success");
                     displayMessages();
@@ -602,12 +590,12 @@ function banUser(username) {
                     displayError(data.message);
                 }
             } catch (error) {
-                console.error("Error banning user:", error);
+
                 displayError("Internal server error");
             }
         }, "Updating room members...");
     } else {
-        console.error("User not found in the list");
+
         displayError("User not found in the list");
     }
 }
@@ -660,7 +648,7 @@ async function transferOwnership(targetUsername) {
                 displayError(data.message);
             }
         } catch (error) {
-            console.error("Error transferring ownership:", error);
+
             displayError("Internal server error");
         }
     }, "Transferring ownership...");
@@ -709,7 +697,7 @@ async function leaveRoom() {
                 displayError(data.message);
             }
         } catch (error) {
-            console.error("Error leaving room:", error);
+
             displayError("Internal server error");
         }
     }, "Leaving room...");
@@ -758,7 +746,7 @@ async function renameRoom() {
                 displayError(data.message);
             }
         } catch (error) {
-            console.error("Error renaming room:", error);
+
             displayError("Internal server error");
         }
     }, "Renaming room...");
@@ -784,7 +772,7 @@ function setupMessageScrollLoader() {
         try {
             await fetchMessages(oldestMessageCursor, "prepend");
         } catch (error) {
-            console.error("Error loading older messages:", error);
+
         } finally {
             isLoadingOlderMessages = false;
         }
@@ -799,10 +787,10 @@ document.getElementById("deleteRoom").onclick = async function() {
         danger: true
     });
     if (confirmation === "Delete this room") {
-        console.log("Room deletion confirmed");
+
         deleteRoom();
     } else {
-        console.log("Room deletion cancelled");
+
         displayError("Room not deleted.");
     }
 };
@@ -816,7 +804,7 @@ document.getElementById("banUser").onclick = async function() {
         danger: true
     });
     if (username) {
-        console.log("Banning user:", username);
+
         banUser(username);
     }
 };
