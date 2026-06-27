@@ -37,7 +37,7 @@ function initializePage() {
     }
     await withGlobalLoading(async () => {
         try {
-            const a = await fetch("/api/users/me/password", {
+            const a = await fetch("/api/auth/me/password", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json"

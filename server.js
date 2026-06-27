@@ -19,8 +19,10 @@ const Room = require('./models/Rooms');
 const { getRoomAccess } = require('./utils/roomAccess');
 
 const PORT = process.env.PORT || 3001;
+const isTest = process.env.NODE_ENV === 'test';
 const publicDir = path.join(__dirname, 'public');
 const uploadsDir = path.join(__dirname, 'uploads');
+const faviconPath = path.join(publicDir, 'images', 'favicon.svg');
 
 // Create app
 const app = express();
@@ -36,6 +38,10 @@ app.use(express.json());
 app.use(express.static(publicDir)); // Serve /css, /js, /images directly
 app.use('/public', express.static(publicDir)); // Backward-compatible /public/* assets
 app.use('/uploads', express.static(uploadsDir)); // Serve uploads directory
+
+app.get(['/favicon.ico', '/favicon.svg'], (req, res) => {
+  res.type('image/svg+xml').sendFile(faviconPath);
+});
 
 
 
@@ -147,9 +153,11 @@ app.use((err, req, res, next) => {
 });
 
 // Connect to MongoDB
-connectToMongoDB().catch(error => {
-  logger.error('db/mongo', error.message);
-});
+if (!isTest) {
+  connectToMongoDB().catch(error => {
+    logger.error('db/mongo', error.message);
+  });
+}
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -161,11 +169,15 @@ app.use('/api/users', settingsRoutes); // Use settings routes
 app.use('/api/user', settingsRoutes); // Legacy alias for settings routes
 app.use('/api/notifications', notificationRoutes);
 
-setupSocketHandlers(server);
+if (!isTest) {
+  setupSocketHandlers(server);
+}
 
 // Server listen logic
-server.listen(PORT, () => {
-  logger.info('server/listen', `Server is running on port ${PORT}`);
-});
+if (require.main === module && !isTest) {
+  server.listen(PORT, () => {
+    logger.info('server/listen', `Server is running on port ${PORT}`);
+  });
+}
 
 module.exports = app;
