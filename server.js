@@ -20,6 +20,8 @@ const { getRoomAccess } = require('./utils/roomAccess');
 
 const isVercel = Boolean(process.env.VERCEL);
 const PORT = process.env.PORT || 3001;
+const publicDir = path.join(__dirname, 'public');
+const uploadsDir = path.join(__dirname, 'uploads');
 
 // Create app
 const app = express();
@@ -35,8 +37,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
-app.use('/public', express.static('public')); // Serve static files from the public directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploads directory
+app.use(express.static(publicDir)); // Serve /css, /js, /images directly
+app.use('/public', express.static(publicDir)); // Backward-compatible /public/* assets
+app.use('/uploads', express.static(uploadsDir)); // Serve uploads directory
 
 
 
