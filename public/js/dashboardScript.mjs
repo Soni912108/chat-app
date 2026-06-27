@@ -170,6 +170,12 @@ function setRoomsPage(page) {
     loadRooms();
 }
 
+function performRoomSearch() {
+    roomsSearchTerm = document.getElementById("roomSearchInput").value;
+    roomsPage = 1;
+    loadRooms();
+}
+
 async function createRoom() {
     const roomName = document.getElementById("newRoomName").value;
     const privacyValue = document.getElementById("privacy").value;
@@ -230,10 +236,12 @@ document.getElementById("roomsNextPage").addEventListener("click", () => {
         setRoomsPage(roomsPage + 1);
     }
 });
-document.getElementById("roomSearchInput").addEventListener("input", event => {
-    roomsSearchTerm = event.target.value;
-    roomsPage = 1;
-    loadRooms();
+document.getElementById("roomSearchButton").addEventListener("click", performRoomSearch);
+document.getElementById("roomSearchInput").addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        performRoomSearch();
+    }
 });
 
 function joinRoom(roomId) {

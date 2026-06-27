@@ -11,6 +11,10 @@ const { getRoomAccess, objectIdListIncludes } = require('../utils/roomAccess');
 
 const notifyUsers = require('../utils/notificationFunction');
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 // Fetch all rooms
 router.get('/', auth, async (req, res) => {
   try {
@@ -21,7 +25,7 @@ router.get('/', auth, async (req, res) => {
 
     const filter = {};
     if (search) {
-      filter.name = { $regex: search, $options: 'i' };
+      filter.name = { $regex: escapeRegex(search), $options: 'i' };
     }
 
     const [rooms, totalRooms] = await Promise.all([

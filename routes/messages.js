@@ -23,22 +23,38 @@ router.get('/:roomId', auth,async (req, res) => {
   }
 
   try {
-    // Fetch messages directly from MongoDB
-    const messages = await Message.find({ room: roomId })
-      .populate('user', 'username') // Populate only 'username' field
-      .sort({ timestamp: 1 }); // Sort by creation date in ascending order
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 50);
+    const before = typeof req.query.before === 'string' ? req.query.before.trim() : '';
+    const query = { room: roomId };
 
-    if (!messages.length) {
-      return res.status(404).json({ message: 'No messages found for this room' });
+    if (before) {
+      if (!/^[a-f\d]{24}$/i.test(before)) {
+        return res.status(400).json({ message: 'Invalid cursor' });
+      }
+      query._id = { $lt: before };
     }
 
-    const messageTuples = messages.map(message => ({
+    const messages = await Message.find(query)
+      .populate('user', 'username')
+      .sort({ _id: -1 })
+      .limit(limit + 1);
+
+    const hasMore = messages.length > limit;
+    const visibleMessages = hasMore ? messages.slice(0, limit) : messages;
+    const orderedMessages = visibleMessages.reverse();
+
+    const messageTuples = orderedMessages.map(message => ({
+      _id: message._id.toString(),
       username: message.user.username,
       content: message.content,
-      timestamp: message.timestamp, // Include the timestamp
+      timestamp: message.timestamp,
     }));
 
-    res.json({ messageTuples });
+    res.json({
+      messageTuples,
+      hasMore,
+      oldestCursor: messageTuples.length ? messageTuples[0]._id : null
+    });
   } catch (error) {
     logger.error('routes/messages:list', error.message);
     res.status(500).json({ message: 'Internal server error' });

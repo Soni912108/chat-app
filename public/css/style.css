@@ -521,6 +521,18 @@ ul {
   margin-top: 18px;
 }
 
+.search-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.search-row input {
+  flex: 1;
+  min-width: 0;
+}
+
 .dashboard-error,
 .connection-error,
 .status-bar {

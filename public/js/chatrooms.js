@@ -4,6 +4,10 @@ const roomId = urlParams.get("roomId");
 let currentUserId = null;
 let currentUsername = null;
 let isRoomOwner = false;
+let oldestMessageCursor = null;
+let hasMoreMessages = false;
+let isLoadingOlderMessages = false;
+let messagesInitialized = false;
 
 let retryTimeout;
 let retryCount = 0;
@@ -97,6 +101,64 @@ function scrollToBottom() {
     }
 }
 
+function getMessagesContainer() {
+    return document.getElementById("messages");
+}
+
+function createMessageElement(message) {
+    const messageElement = document.createElement("li");
+    messageElement.className = "message";
+
+    const avatarDiv = document.createElement("div");
+    avatarDiv.className = "message-avatar";
+    avatarDiv.textContent = message.username.charAt(0).toUpperCase();
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "message-content";
+
+    const usernameSpan = document.createElement("span");
+    usernameSpan.className = "username";
+    usernameSpan.textContent = message.username;
+
+    const messageParagraph = document.createElement("p");
+    messageParagraph.textContent = message.content;
+
+    const timestampSpan = document.createElement("span");
+    timestampSpan.className = "timestamp";
+    const timestamp = new Date(message.timestamp).toLocaleString();
+    timestampSpan.textContent = timestamp;
+
+    contentDiv.appendChild(usernameSpan);
+    contentDiv.appendChild(messageParagraph);
+    contentDiv.appendChild(timestampSpan);
+    messageElement.appendChild(avatarDiv);
+    messageElement.appendChild(contentDiv);
+
+    return messageElement;
+}
+
+function renderMessages(messages, { replace = false, prepend = false } = {}) {
+    const messagesContainer = getMessagesContainer();
+    if (!messagesContainer) {
+        return;
+    }
+
+    if (replace) {
+        messagesContainer.innerHTML = "";
+    }
+
+    const fragment = document.createDocumentFragment();
+    messages.forEach(message => {
+        fragment.appendChild(createMessageElement(message));
+    });
+
+    if (prepend) {
+        messagesContainer.prepend(fragment);
+    } else {
+        messagesContainer.appendChild(fragment);
+    }
+}
+
 function fetchRoomDetails() {
     console.log("Fetching room details for room:", roomId);
     
@@ -148,81 +210,97 @@ function fetchRoomDetails() {
 
 function displayMessages() {
     console.log("Fetching messages for room:", roomId);
-    
-    fetch(`/api/messages/${roomId}`, {
+    const messagesContainer = document.getElementById("messages");
+    if (messagesContainer) {
+        messagesContainer.innerHTML = "";
+    }
+
+    oldestMessageCursor = null;
+    hasMoreMessages = false;
+
+    fetchMessages();
+}
+
+async function fetchMessages(before = null, mode = "replace") {
+    const params = new URLSearchParams({
+        limit: "20"
+    });
+    if (before) {
+        params.set("before", before);
+    }
+
+    const response = await fetch(`/api/messages/${roomId}?${params.toString()}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json"
         },
         credentials: "include"
-    })
-    .then(response => {
-        console.log("Messages response status:", response.status);
-        
-        if (!response.ok) {
-            if (response.status === 404) {
-                return { messageTuples: [] };
-            }
-            if (response.status === 403) {
-                window.location.href = "/dashboard?message=accessDenied";
-                return { messageTuples: [] };
-            }
-            if (response.status === 401) {
-                handleAuthExpired();
-                return { messageTuples: [] };
-            }
-            throw new Error("Failed to fetch messages");
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log("Messages data:", data);
-        
-        const messagesContainer = document.getElementById("messages");
-        messagesContainer.innerHTML = "";
-        
-        if (data.messageTuples && data.messageTuples.length > 0) {
-            data.messageTuples.forEach(message => {
-                const messageElement = document.createElement("li");
-                messageElement.className = "message";
-                
-                const avatarDiv = document.createElement("div");
-                avatarDiv.className = "message-avatar";
-                avatarDiv.textContent = message.username.charAt(0).toUpperCase();
-                
-                const contentDiv = document.createElement("div");
-                contentDiv.className = "message-content";
-                
-                const usernameSpan = document.createElement("span");
-                usernameSpan.className = "username";
-                usernameSpan.textContent = message.username;
-                
-                const messageParagraph = document.createElement("p");
-                messageParagraph.textContent = message.content;
-                
-                const timestampSpan = document.createElement("span");
-                timestampSpan.className = "timestamp";
-                const timestamp = new Date(message.timestamp).toLocaleString();
-                timestampSpan.textContent = timestamp;
-                
-                contentDiv.appendChild(usernameSpan);
-                contentDiv.appendChild(messageParagraph);
-                contentDiv.appendChild(timestampSpan);
-                messageElement.appendChild(avatarDiv);
-                messageElement.appendChild(contentDiv);
-                messagesContainer.appendChild(messageElement);
-            });
-            
-            scrollToBottom();
-        } else {
-            const emptyMessage = document.createElement("li");
-            emptyMessage.textContent = "It's empty. Type something here...";
-            messagesContainer.appendChild(emptyMessage);
-        }
-    })
-    .catch(error => {
-        console.error("Error fetching messages:", error);
     });
+
+    console.log("Messages response status:", response.status);
+
+    if (!response.ok) {
+        if (response.status === 403) {
+            window.location.href = "/dashboard?message=accessDenied";
+            return;
+        }
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
+        if (response.status === 404) {
+            if (mode === "replace") {
+                const messagesContainer = document.getElementById("messages");
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = "";
+                    const emptyMessage = document.createElement("li");
+                    emptyMessage.textContent = "It's empty. Type something here...";
+                    messagesContainer.appendChild(emptyMessage);
+                }
+            }
+            return;
+        }
+        throw new Error("Failed to fetch messages");
+    }
+
+    const data = await response.json();
+    console.log("Messages data:", data);
+
+    const tuples = Array.isArray(data.messageTuples) ? data.messageTuples : [];
+    hasMoreMessages = Boolean(data.hasMore);
+    oldestMessageCursor = data.oldestCursor || oldestMessageCursor;
+
+    if (mode === "replace") {
+        const messagesContainer = document.getElementById("messages");
+        if (messagesContainer) {
+            messagesContainer.innerHTML = "";
+            if (!tuples.length) {
+                const emptyMessage = document.createElement("li");
+                emptyMessage.textContent = "It's empty. Type something here...";
+                messagesContainer.appendChild(emptyMessage);
+                messagesInitialized = true;
+                return;
+            }
+        }
+        renderMessages(tuples, { replace: true });
+        messagesInitialized = true;
+        scrollToBottom();
+        return;
+    }
+
+    if (mode === "prepend" && tuples.length) {
+        const messagesContainer = document.getElementById("messages");
+        const scrollContainer = document.getElementById("messages-container");
+        if (!messagesContainer || !scrollContainer) {
+            return;
+        }
+
+        const previousHeight = scrollContainer.scrollHeight;
+        const previousTop = scrollContainer.scrollTop;
+        renderMessages(tuples, { prepend: true });
+        const nextHeight = scrollContainer.scrollHeight;
+        scrollContainer.scrollTop = nextHeight - previousHeight + previousTop;
+    }
 }
 socket.on("connect", async () => {
     // Check authentication first
@@ -253,8 +331,9 @@ socket.on("connect", async () => {
     clearTimeout(retryTimeout);
     
     fetchRoomDetails();
-    displayMessages();
+    await fetchMessages(null, "replace");
     socket.emit("joinRoom", { roomId });
+    setupMessageScrollLoader();
 }), socket.on("connect_error", (error) => {
     console.error("Connection error:", error);
     retryCount++;
@@ -339,29 +418,20 @@ socket.on("message", (messageData) => {
     console.log("Message received:", messageData);
     
     const messagesContainer = document.getElementById("messages");
-    const messageElement = document.createElement("li");
-    messageElement.className = "message";
-    
-    const avatarDiv = document.createElement("div");
-    avatarDiv.className = "message-avatar";
-    avatarDiv.textContent = messageData.user.charAt(0).toUpperCase();
-    
-    const contentDiv = document.createElement("div");
-    contentDiv.className = "message-content";
-    
-    const usernameSpan = document.createElement("span");
-    usernameSpan.className = "username";
-    usernameSpan.textContent = messageData.user;
-    
-    const messageParagraph = document.createElement("p");
-    messageParagraph.textContent = messageData.content;
-    
-    contentDiv.appendChild(usernameSpan);
-    contentDiv.appendChild(messageParagraph);
-    messageElement.appendChild(avatarDiv);
-    messageElement.appendChild(contentDiv);
-    messagesContainer.appendChild(messageElement);
-    
+    if (!messagesContainer) {
+        return;
+    }
+
+    if (messagesContainer.textContent === "It's empty. Type something here...") {
+        messagesContainer.innerHTML = "";
+    }
+
+    const message = {
+        username: messageData.user,
+        content: messageData.content,
+        timestamp: messageData.timestamp || new Date().toISOString()
+    };
+    renderMessages([message], { prepend: false });
     scrollToBottom();
 });
 socket.on("updateUserList", (users) => {
@@ -689,6 +759,33 @@ async function renameRoom() {
         console.error("Error renaming room:", error);
         displayError("Internal server error");
     }
+}
+
+function setupMessageScrollLoader() {
+    const messagesContainer = document.getElementById("messages-container");
+    if (!messagesContainer || messagesContainer.dataset.scrollLoaderBound === "true") {
+        return;
+    }
+
+    messagesContainer.dataset.scrollLoaderBound = "true";
+    messagesContainer.addEventListener("scroll", async () => {
+        if (isLoadingOlderMessages || !hasMoreMessages || !oldestMessageCursor) {
+            return;
+        }
+
+        if (messagesContainer.scrollTop > 80) {
+            return;
+        }
+
+        isLoadingOlderMessages = true;
+        try {
+            await fetchMessages(oldestMessageCursor, "prepend");
+        } catch (error) {
+            console.error("Error loading older messages:", error);
+        } finally {
+            isLoadingOlderMessages = false;
+        }
+    });
 }
 document.getElementById("deleteRoom").onclick = async function() {
     const confirmation = await promptDialog({
