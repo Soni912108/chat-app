@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const http = require('http');
-
+require('dotenv').config();
 
 const connectToMongoDB = require('./databases/mongodbConnection');
 const avatarRoutes = require('./routes/avatar');
@@ -12,8 +12,6 @@ const settingsRoutes = require('./routes/settings');
 const notificationRoutes = require('./routes/notifications');
 const { setupSocketHandlers } = require('./socket');
 const logger = require('./utils/logger');
-
-require('dotenv').config();
 const cors = require('cors'); // Import CORS middleware
 
 

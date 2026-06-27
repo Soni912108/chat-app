@@ -1,4 +1,6 @@
 // utils/logger.js
+require('dotenv').config();
+
 const LOG_LEVELS = {
   ERR: 0,
   WARN: 1,

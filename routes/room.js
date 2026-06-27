@@ -14,10 +14,26 @@ const notifyUsers = require('../utils/notificationFunction');
 // Fetch all rooms
 router.get('/', auth, async (req, res) => {
   try {
-    const rooms = await Room.find()
-      .populate('roomOwner', 'username')
-      .select('name roomOwner users banned isPrivate pendingRequests createdAt updatedAt')
-      .lean();
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+    const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (search) {
+      filter.name = { $regex: search, $options: 'i' };
+    }
+
+    const [rooms, totalRooms] = await Promise.all([
+      Room.find(filter)
+        .populate('roomOwner', 'username')
+        .select('name roomOwner users banned isPrivate pendingRequests createdAt updatedAt')
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Room.countDocuments(filter)
+    ]);
 
     const safeRooms = rooms.map(room => ({
       _id: room._id,
@@ -31,13 +47,17 @@ router.get('/', auth, async (req, res) => {
       updatedAt: room.updatedAt,
     }));
     
-    res.json({ rooms: safeRooms });
+    res.json({
+      rooms: safeRooms,
+      page,
+      limit,
+      totalRooms,
+      totalPages: Math.max(Math.ceil(totalRooms / limit), 1),
+      search
+    });
   } catch (error) {
     logger.error('routes/rooms:list', error.message);
-    res.status(500).json({ 
-      message: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-    });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 

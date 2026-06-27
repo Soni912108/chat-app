@@ -26,6 +26,10 @@ async function checkAuthentication() {
 
 // Initialize socket connection for real-time notifications
 let socket;
+let roomsPage = 1;
+const roomsPageSize = 10;
+let roomsSearchTerm = "";
+let roomsTotalPages = 1;
 function initializeSocket() {
     socket = io({ path: '/socket.io' });
     
@@ -56,8 +60,20 @@ function updateNotificationCount(count) {
 function loadRooms() {
     const spinnerEl = document.getElementById("lds-ellipsis");
     spinnerEl.style.display = "block";
+    const pageInfo = document.getElementById("roomsPageInfo");
+    const prevButton = document.getElementById("roomsPrevPage");
+    const nextButton = document.getElementById("roomsNextPage");
+    const searchQuery = roomsSearchTerm.trim();
 
-    fetch("/api/rooms", {
+    const params = new URLSearchParams({
+        page: String(roomsPage),
+        limit: String(roomsPageSize)
+    });
+    if (searchQuery) {
+        params.set("search", searchQuery);
+    }
+
+    fetch(`/api/rooms?${params.toString()}`, {
         method: 'GET',
         headers: {
             "Content-Type": "application/json"
@@ -82,10 +98,21 @@ function loadRooms() {
         const roomsList = document.getElementById("rooms");
         roomsList.innerHTML = "";
         spinnerEl.style.display = "none";
+        roomsTotalPages = data.totalPages || 1;
+
+        if (pageInfo) {
+            pageInfo.textContent = `Page ${data.page || roomsPage} of ${roomsTotalPages}`;
+        }
+        if (prevButton) {
+            prevButton.disabled = (data.page || roomsPage) <= 1;
+        }
+        if (nextButton) {
+            nextButton.disabled = (data.page || roomsPage) >= roomsTotalPages;
+        }
 
         if (!data.rooms || !data.rooms.length) {
             const li = document.createElement("li");
-            li.textContent = "No rooms available";
+            li.textContent = searchQuery ? "No matching rooms" : "No rooms available";
             roomsList.appendChild(li);
             return;
         }
@@ -138,6 +165,11 @@ function loadRooms() {
     });
 }
 
+function setRoomsPage(page) {
+    roomsPage = page;
+    loadRooms();
+}
+
 async function createRoom() {
     const roomName = document.getElementById("newRoomName").value;
     const privacyValue = document.getElementById("privacy").value;
@@ -188,6 +220,21 @@ async function createRoom() {
 }
 
 document.getElementById("createRoomButton").addEventListener("click", createRoom);
+document.getElementById("roomsPrevPage").addEventListener("click", () => {
+    if (roomsPage > 1) {
+        setRoomsPage(roomsPage - 1);
+    }
+});
+document.getElementById("roomsNextPage").addEventListener("click", () => {
+    if (roomsPage < roomsTotalPages) {
+        setRoomsPage(roomsPage + 1);
+    }
+});
+document.getElementById("roomSearchInput").addEventListener("input", event => {
+    roomsSearchTerm = event.target.value;
+    roomsPage = 1;
+    loadRooms();
+});
 
 function joinRoom(roomId) {
     console.log("Attempting to join room:", roomId);

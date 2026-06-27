@@ -38,6 +38,10 @@ function updateStatus(message) {
 
 // Initialize socket connection for real-time notifications
 let socket;
+let notificationsPage = 1;
+const notificationsPageSize = 10;
+let notificationsTotalPages = 1;
+let notificationListHandlerAttached = false;
 function initializeSocket() {
     socket = io({ path: '/socket.io' });
     
@@ -58,9 +62,12 @@ function initializeSocket() {
 
 async function fetchNotifications() {
     try {
+        const pageInfo = document.getElementById("notificationsPageInfo");
+        const prevButton = document.getElementById("notificationsPrevPage");
+        const nextButton = document.getElementById("notificationsNextPage");
         updateStatus("Fetching notifications...");
         console.log("Fetching notifications...");
-        const response = await fetch("/api/notifications", {
+        const response = await fetch(`/api/notifications?page=${notificationsPage}&limit=${notificationsPageSize}`, {
             method: "GET",
             credentials: "include" // Send cookies for authentication
         });
@@ -78,27 +85,100 @@ async function fetchNotifications() {
         console.log("Notifications fetched:", data.notifications);
         console.log("Number of notifications:", data.notifications.length);
         
-        updateStatus(`Found ${data.notifications.length} notifications`);
-        
-        // Log each notification for debugging
-        data.notifications.forEach((notification, index) => {
-            console.log(`Notification ${index + 1}:`, {
-                id: notification._id,
-                message: notification.message,
-                sender: notification.sender,
-                recipient: notification.recipient,
-                roomId: notification.roomId,
-                read: notification.read,
-                createdAt: notification.createdAt
-            });
-        });
+        notificationsTotalPages = data.totalPages || 1;
+        updateStatus(`Showing page ${data.page || notificationsPage} of ${notificationsTotalPages}`);
+        if (pageInfo) {
+            pageInfo.textContent = `Page ${data.page || notificationsPage} of ${notificationsTotalPages}`;
+        }
+        if (prevButton) {
+            prevButton.disabled = (data.page || notificationsPage) <= 1;
+        }
+        if (nextButton) {
+            nextButton.disabled = (data.page || notificationsPage) >= notificationsTotalPages;
+        }
         
         displayNotifications(data.notifications);
+        updateNotificationControls(data.unreadNotifications ?? 0);
     } catch (error) {
         updateStatus("Error fetching notifications: " + error.message);
         console.error("Error fetching notifications:", error);
         displayError("Error fetching notifications: " + error.message);
     }
+}
+
+function initializeNotificationListHandlers() {
+    if (notificationListHandlerAttached) {
+        return;
+    }
+
+    const notificationsList = document.getElementById("notifications-list");
+    if (!notificationsList) {
+        return;
+    }
+
+    notificationsList.addEventListener("click", async event => {
+        const button = event.target.closest("button[data-action]");
+        if (!button) {
+            return;
+        }
+
+        const { action, notificationId, roomId, senderId, isRead } = button.dataset;
+        if (action === "mark-read") {
+            if (isRead === "true") {
+                return;
+            }
+
+            const confirmed = await confirmDialog({
+                title: "Mark as read",
+                message: "Do you want to mark this notification as read?",
+                confirmText: "Mark as read",
+                danger: false
+            });
+
+            if (!confirmed) {
+                return;
+            }
+
+            await markNotificationAsRead(notificationId);
+            await fetchNotifications();
+            if (typeof getNotificationNumber === 'function') {
+                getNotificationNumber();
+            }
+            return;
+        }
+
+        if (action === "delete") {
+            const confirmed = await confirmDialog({
+                title: "Delete notification",
+                message: "Do you want to delete this notification?",
+                confirmText: "Delete",
+                danger: true
+            });
+
+            if (!confirmed) {
+                return;
+            }
+
+            await deleteNotification(notificationId);
+            await fetchNotifications();
+            if (typeof getNotificationNumber === 'function') {
+                getNotificationNumber();
+            }
+            return;
+        }
+
+        if (action === "accept-request") {
+            const success = await handleRoomRequestNotification(senderId, roomId, notificationId);
+            if (success) {
+                await fetchNotifications();
+                if (typeof getNotificationNumber === 'function') {
+                    getNotificationNumber();
+                }
+            }
+        }
+    });
+
+    notificationListHandlerAttached = true;
 }
 
 function displayNotifications(notifications) {
@@ -138,36 +218,27 @@ function displayNotifications(notifications) {
             console.log("Adding accept button for join request");
             const acceptButton = document.createElement("button");
             acceptButton.textContent = "Accept Request";
-            acceptButton.addEventListener("click", async () => {
-                const success = await handleRoomRequestNotification(notification.sender, notification.roomId, notification._id);
-                if (success) {
-                    acceptButton.style.display = "none";
-                    notificationItem.remove();
-                } else {
-                    console.error("Error accepting room request");
-                    displayError("Error accepting room request. User might already be in the room list");
-                }
-            });
+            acceptButton.dataset.action = "accept-request";
+            acceptButton.dataset.notificationId = notification._id;
+            acceptButton.dataset.roomId = notification.roomId;
+            acceptButton.dataset.senderId = notification.sender;
             notificationItem.appendChild(acceptButton);
         }
         
         // Add mark as read button
         const markReadButton = document.createElement("button");
         markReadButton.textContent = notification.read ? "Already Read" : "Mark as Read";
-        markReadButton.addEventListener("click", async () => {
-            await markNotificationAsRead(notification._id);
-            markReadButton.textContent = "Already Read";
-            notificationItem.style.color = "green";
-        });
+        markReadButton.disabled = notification.read;
+        markReadButton.dataset.action = "mark-read";
+        markReadButton.dataset.notificationId = notification._id;
+        markReadButton.dataset.isRead = String(notification.read);
         notificationItem.appendChild(markReadButton);
         
         // Add delete button
         const deleteButton = document.createElement("button");
         deleteButton.textContent = "Delete";
-        deleteButton.addEventListener("click", async () => {
-            await deleteNotification(notification._id);
-            notificationsList.removeChild(notificationItem);
-        });
+        deleteButton.dataset.action = "delete";
+        deleteButton.dataset.notificationId = notification._id;
         notificationItem.appendChild(deleteButton);
         
         notificationsList.appendChild(notificationItem);
@@ -175,6 +246,14 @@ function displayNotifications(notifications) {
     });
     
     console.log("Finished displaying all notifications");
+}
+
+function updateNotificationControls(unreadNotifications) {
+    const markAllButton = document.getElementById("markAllRead");
+    if (markAllButton) {
+        markAllButton.disabled = unreadNotifications === 0;
+        markAllButton.textContent = unreadNotifications === 0 ? "All read" : "Mark all as read";
+    }
 }
 
 async function markNotificationAsRead(notificationId) {
@@ -253,12 +332,68 @@ function displayError(message) {
     showToast(message, "error");
 }
 
+async function markAllNotificationsAsRead() {
+    try {
+        const confirmed = await confirmDialog({
+            title: "Mark all as read",
+            message: "Do you want to mark all notifications as read?",
+            confirmText: "Mark all",
+            danger: false
+        });
+
+        if (!confirmed) {
+            return;
+        }
+
+        const response = await fetch('/api/notifications/mark-all-read', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.status === 401) {
+            handleAuthExpired();
+            return;
+        }
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to mark notifications as read');
+        }
+
+        const data = await response.json();
+        showToast(data.message || "All notifications marked as read", "success");
+        notificationsPage = 1;
+        await fetchNotifications();
+        if (typeof getNotificationNumber === 'function') {
+            getNotificationNumber();
+        }
+    } catch (error) {
+        console.error("Error marking all notifications as read:", error);
+        displayError("Error marking all notifications as read: " + error.message);
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Notifications page loaded, checking authentication...");
     const isAuthenticated = await checkAuthentication();
     if (isAuthenticated) {
         console.log("Authentication successful, fetching notifications...");
+        initializeNotificationListHandlers();
         fetchNotifications();
         initializeSocket(); // Initialize socket connection
+    }
+});
+
+document.getElementById("markAllRead").addEventListener("click", markAllNotificationsAsRead);
+document.getElementById("notificationsPrevPage").addEventListener("click", () => {
+    if (notificationsPage > 1) {
+        notificationsPage -= 1;
+        fetchNotifications();
+    }
+});
+document.getElementById("notificationsNextPage").addEventListener("click", () => {
+    if (notificationsPage < notificationsTotalPages) {
+        notificationsPage += 1;
+        fetchNotifications();
     }
 });
