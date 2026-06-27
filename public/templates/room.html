@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="roomTitle">Room</title>
   <link rel="stylesheet" type="text/css" href="/public/css/style.css">
+  <script src="/config.js"></script>
+  <script src="/public/js/socketClient.js"></script>
   <script defer src="/public/js/uiFeedback.js"></script>
   <script defer src="/public/js/navbar.js"></script>
 </head>
@@ -57,7 +59,6 @@
     </section>
   </main>
 
-  <script src="/socket.io/socket.io.js"></script>
   <script defer src="/public/js/chatrooms.js"></script>
   <script>
     const messageInput = document.getElementById('messageInput');

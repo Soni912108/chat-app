@@ -42,7 +42,7 @@ const notificationsPageSize = 10;
 let notificationsTotalPages = 1;
 let notificationListHandlerAttached = false;
 function initializeSocket() {
-    socket = io({ path: '/socket.io' });
+    socket = window.createAppSocket ? window.createAppSocket() : { on() {}, emit() {}, connect() {}, disconnect() {}, off() {} };
     
     socket.on('connect', () => {
 
