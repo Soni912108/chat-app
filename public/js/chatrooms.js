@@ -1,4 +1,4 @@
-const socket = window.createAppSocket ? window.createAppSocket() : { on() {}, emit() {}, connect() {}, disconnect() {}, off() {} };
+const socket = window.createAppSocket();
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get("roomId");
 let currentUserId = null;
@@ -481,11 +481,6 @@ socket.on("reloadingPage", (users) => {
 });
 
 function sendMessage() {
-    if (!window.__APP_CONFIG__ || !window.__APP_CONFIG__.enableSockets) {
-        showToast("Realtime chat is unavailable in this deployment.", "error");
-        return;
-    }
-
     const messageInput = document.getElementById("messageInput");
     const messageText = messageInput.value.trim();
     

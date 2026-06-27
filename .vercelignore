@@ -1,7 +1,0 @@
-.env
-.env.*
-node_modules
-uploads
-tests
-.git
-.github

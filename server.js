@@ -18,17 +18,13 @@ const cors = require('cors'); // Import CORS middleware
 const Room = require('./models/Rooms');
 const { getRoomAccess } = require('./utils/roomAccess');
 
-const isVercel = Boolean(process.env.VERCEL);
 const PORT = process.env.PORT || 3001;
 const publicDir = path.join(__dirname, 'public');
 const uploadsDir = path.join(__dirname, 'uploads');
 
 // Create app
 const app = express();
-let server = null;
-if (!isVercel) {
-  server = http.createServer(app);
-}
+const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
@@ -150,30 +146,10 @@ app.use((err, req, res, next) => {
   }
 });
 
-if (isVercel) {
-  app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
-}
-
-app.get('/config.js', (req, res) => {
-  res.type('application/javascript').send(
-    `window.__APP_CONFIG__ = ${JSON.stringify({
-      enableSockets: !isVercel,
-      socketPath: '/socket.io'
-    })};`
-  );
-});
-
 // Connect to MongoDB
 connectToMongoDB().catch(error => {
   logger.error('db/mongo', error.message);
 });
-
-// Server listen logic
-if (!isVercel) {
-  server.listen(PORT, () => {
-    logger.info('server/listen', `Server is running on port ${PORT}`);
-  });
-}
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -185,9 +161,11 @@ app.use('/api/users', settingsRoutes); // Use settings routes
 app.use('/api/user', settingsRoutes); // Legacy alias for settings routes
 app.use('/api/notifications', notificationRoutes);
 
-// Setup Socket.io handlers only for the local Node server
-if (server) {
-  setupSocketHandlers(server);
-}
+setupSocketHandlers(server);
+
+// Server listen logic
+server.listen(PORT, () => {
+  logger.info('server/listen', `Server is running on port ${PORT}`);
+});
 
 module.exports = app;

@@ -30,14 +30,7 @@ const roomsPageSize = 10;
 let roomsSearchTerm = "";
 let roomsTotalPages = 1;
 function initializeSocket() {
-    socket = window.createAppSocket ? window.createAppSocket() : { on() {}, emit() {}, connect() {}, disconnect() {}, off() {} };
-
-    if (!window.__APP_CONFIG__ || !window.__APP_CONFIG__.enableSockets) {
-        if (typeof getNotificationNumber === "function") {
-            getNotificationNumber();
-        }
-        return;
-    }
+    socket = window.createAppSocket();
     
     socket.on('connect', () => {
 

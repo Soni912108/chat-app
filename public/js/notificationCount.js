@@ -1,42 +1,37 @@
-const socket = window.createAppSocket ? window.createAppSocket() : { on() {}, emit() {}, connect() {}, disconnect() {}, off() {} };
-const socketsEnabled = Boolean(window.__APP_CONFIG__ && window.__APP_CONFIG__.enableSockets);
+const socket = window.createAppSocket();
 
 let retryCount = 0;
 const maxRetries = 5;
 let retryTimeout;
 
-if (socketsEnabled) {
-    socket.on("connect", () => {
-        updateConnectionStatus("Connected to the server.", "success");
-        retryCount = 0;
-        getNotificationNumber();
-    });
-
-    socket.on("connect_error", error => {
-        retryCount++;
-        updateConnectionStatus(`Please wait while the connection is reestablishing... (${retryCount})`, "error");
-        if (retryCount >= maxRetries) {
-            showTroubleshootingTips();
-        } else {
-            retryTimeout = setTimeout(() => {
-                socket.connect();
-            }, 5000);
-        }
-    });
-
-    socket.on("disconnect", () => {
-        updateConnectionStatus("You have been disconnected from the server. Trying to reconnect...", "error");
-        if (retryCount < maxRetries) {
-            retryTimeout = setTimeout(() => {
-                socket.connect();
-            }, 5000);
-        } else {
-            showTroubleshootingTips();
-        }
-    });
-} else {
+socket.on("connect", () => {
+    updateConnectionStatus("Connected to the server.", "success");
+    retryCount = 0;
     getNotificationNumber();
-}
+});
+
+socket.on("connect_error", error => {
+    retryCount++;
+    updateConnectionStatus(`Please wait while the connection is reestablishing... (${retryCount})`, "error");
+    if (retryCount >= maxRetries) {
+        showTroubleshootingTips();
+    } else {
+        retryTimeout = setTimeout(() => {
+            socket.connect();
+        }, 5000);
+    }
+});
+
+socket.on("disconnect", () => {
+    updateConnectionStatus("You have been disconnected from the server. Trying to reconnect...", "error");
+    if (retryCount < maxRetries) {
+        retryTimeout = setTimeout(() => {
+            socket.connect();
+        }, 5000);
+    } else {
+        showTroubleshootingTips();
+    }
+});
 
 function updateConnectionStatus(message, level) {
     const errorContainer = document.getElementById("error");
@@ -71,13 +66,11 @@ function showTroubleshootingTips() {
     errorContainer.appendChild(paragraph);
 }
 
-if (socketsEnabled) {
-    socket.on("notification", unreadCount => {
-        updateNotificationCount(unreadCount);
-        showNotificationAnimation();
-        getNotificationNumber();
-    });
-}
+socket.on("notification", unreadCount => {
+    updateNotificationCount(unreadCount);
+    showNotificationAnimation();
+    getNotificationNumber();
+});
 
 function updateNotificationCount(count) {
     const badge = document.getElementById("notification-count");
