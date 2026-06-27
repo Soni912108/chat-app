@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
 const http = require('http');
+const cookie = require('cookie');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const connectToMongoDB = require('./databases/mongodbConnection');
@@ -13,6 +15,8 @@ const notificationRoutes = require('./routes/notifications');
 const { setupSocketHandlers } = require('./socket');
 const logger = require('./utils/logger');
 const cors = require('cors'); // Import CORS middleware
+const Room = require('./models/Rooms');
+const { getRoomAccess } = require('./utils/roomAccess');
 
 
 const PORT = process.env.PORT; //is need to start the server
@@ -43,9 +47,41 @@ app.get('/dashboard', (req, res) => {
     }
 });
 // Route to render the rooms templates
-// Note: Access control is handled client-side in chatrooms.js
-app.get('/room',(req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'templates', 'room.html'));
+app.get('/room', async (req, res) => {
+  try {
+    const roomId = typeof req.query.roomId === 'string' ? req.query.roomId.trim() : '';
+    if (!roomId) {
+      return res.status(404).sendFile(path.join(__dirname, 'public', 'templates', '404.html'));
+    }
+
+    const cookies = cookie.parse(req.headers.cookie || '');
+    const token = cookies.token;
+    if (!token) {
+      return res.redirect('/login?message=loggedOut');
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.redirect('/login?message=loggedOut');
+    }
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).sendFile(path.join(__dirname, 'public', 'templates', '404.html'));
+    }
+
+    const { isMember, isOwner, isBanned } = getRoomAccess(room, decoded.id);
+    if (isBanned || (!isMember && !isOwner)) {
+      return res.status(404).sendFile(path.join(__dirname, 'public', 'templates', '404.html'));
+    }
+
+    return res.sendFile(path.join(__dirname, 'public', 'templates', 'room.html'));
+  } catch (error) {
+    logger.error('server/room', error.message);
+    return res.status(500).send('Error loading room');
+  }
 });
 
 // Route to render profile page

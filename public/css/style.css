@@ -471,7 +471,7 @@ ul {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-muted);
-  cursor: pointer;
+  cursor: default;
 }
 
 #rooms li:hover {
@@ -514,6 +514,16 @@ ul {
 .room-card-status.pending {
   background: rgba(168,100,18,0.14);
   color: var(--warning);
+}
+
+.room-card-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.room-card-actions .nav-button {
+  min-width: 132px;
 }
 
 .create-room button {

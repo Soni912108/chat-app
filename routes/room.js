@@ -90,58 +90,6 @@ router.get('/:roomId', auth, async (req, res) => {
 
 
 
-// Delete/ban a user from a specific room
-router.delete('/:roomId/:username', auth, async (req, res) => {
-  const { roomId, username } = req.params;
-
-  try {
-    const room = await Room.findById(roomId).populate('users', 'username').populate('roomOwner', 'username');
-    if (!room) {
-      return res.status(404).json({ message: 'Room not found' });
-    }
-
-    // Check if the requester is the owner of the room
-    const isOwner = req.user.id.toString() === room.roomOwner._id.toString();
-    if (!isOwner) {
-      return res.status(403).json({ message: 'You are not the owner of this room.' });
-    }
-
-    const userToRemove = room.users.find(user => user.username === username);
-    if (!userToRemove) {
-      return res.status(404).json({ message: 'User not found in this room' });
-    }
-
-    if (userToRemove._id.toString() === room.roomOwner._id.toString()) {
-      return res.status(403).json({
-        message: 'Room owners cannot ban themselves. Delete the room or transfer ownership instead.'
-      });
-    }
-
-    // Remove the user from the users list and add to banned list
-    room.users = room.users.filter(user => user._id.toString() !== userToRemove._id.toString());
-    room.banned.push(userToRemove._id);
-    await room.save();
-
-    // Delete the user's messages from the room
-    await Message.deleteMany({ room: roomId, user: userToRemove._id });
-
-    // Notify the banned user via socket
-    const io = getIo();
-    io.to(userToRemove._id.toString()).emit('userBanned', 'You have been banned from the room. Redirecting to dashboard.');
-    
-    // Also create a notification record for the banned user
-    const message = `You have been banned from the room ${room.name}`;
-    await notifyUsers(req.user.id, userToRemove._id, message, roomId);
-
-    res.status(200).json({ message: 'User banned and messages deleted successfully' });
-  } catch (error) {
-    logger.error('routes/rooms:banUser', error.message);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
-
-
-
 // Transfer room ownership to another existing room member
 router.post('/:roomId/transfer', auth, async (req, res) => {
   const { roomId } = req.params;
@@ -200,6 +148,58 @@ router.post('/:roomId/transfer', auth, async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+
+// Delete/ban a user from a specific room
+router.delete('/:roomId/:username', auth, async (req, res) => {
+  const { roomId, username } = req.params;
+
+  try {
+    const room = await Room.findById(roomId).populate('users', 'username').populate('roomOwner', 'username');
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    // Check if the requester is the owner of the room
+    const isOwner = req.user.id.toString() === room.roomOwner._id.toString();
+    if (!isOwner) {
+      return res.status(403).json({ message: 'You are not the owner of this room.' });
+    }
+
+    const userToRemove = room.users.find(user => user.username === username);
+    if (!userToRemove) {
+      return res.status(404).json({ message: 'User not found in this room' });
+    }
+
+    if (userToRemove._id.toString() === room.roomOwner._id.toString()) {
+      return res.status(403).json({
+        message: 'Room owners cannot ban themselves. Delete the room or transfer ownership instead.'
+      });
+    }
+
+    // Remove the user from the users list and add to banned list
+    room.users = room.users.filter(user => user._id.toString() !== userToRemove._id.toString());
+    room.banned.push(userToRemove._id);
+    await room.save();
+
+    // Delete the user's messages from the room
+    await Message.deleteMany({ room: roomId, user: userToRemove._id });
+
+    // Notify the banned user via socket
+    const io = getIo();
+    io.to(userToRemove._id.toString()).emit('userBanned', 'You have been banned from the room. Redirecting to dashboard.');
+    
+    // Also create a notification record for the banned user
+    const message = `You have been banned from the room ${room.name}`;
+    await notifyUsers(req.user.id, userToRemove._id, message, roomId);
+
+    res.status(200).json({ message: 'User banned and messages deleted successfully' });
+  } catch (error) {
+    logger.error('routes/rooms:banUser', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 
 // Rename a room
@@ -415,6 +415,43 @@ router.post('/:roomId/join', auth, async (req, res) => {
   }
 });
 
+
+
+// Cancel a pending join request
+router.post('/:roomId/join-request/cancel', auth, async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const { isMember, isOwner, isBanned } = getRoomAccess(room, userId);
+    logger.debug('routes/rooms:cancelJoinRequest', `User ${userId} attempting to cancel join request for room ${roomId}. isMember: ${isMember}, isOwner: ${isOwner}, isBanned: ${isBanned}`);
+    if (isBanned) {
+      return res.status(403).json({ message: 'You are banned from this room' });
+    }
+
+    if (isMember || isOwner) {
+      return res.status(400).json({ message: 'You are already a member of this room' });
+    }
+
+    const requestExists = objectIdListIncludes(room.pendingRequests, userId);
+    if (!requestExists) {
+      return res.status(404).json({ message: 'No pending join request found' });
+    }
+
+    room.pendingRequests = room.pendingRequests.filter(id => id.toString() !== userId.toString());
+    await room.save();
+
+    res.status(200).json({ message: 'Join request cancelled' });
+  } catch (error) {
+    logger.error('routes/rooms:cancelJoinRequest', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
 
 
 // Route to accept a user's request to join a specific room
