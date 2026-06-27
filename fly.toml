@@ -1,0 +1,26 @@
+app = "chat-app"
+primary_region = "fra"
+
+[build]
+  # Add a Dockerfile later if you want full control over the runtime image.
+  # Fly can also use its Node buildpack flow if you launch the app from the CLI.
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3001"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_start_machines = true
+  auto_stop_machines = "off"
+  min_machines_running = 1
+
+[checks]
+  [checks.http]
+    grace_period = "10s"
+    interval = "15s"
+    method = "GET"
+    path = "/"
+    protocol = "http"
+    timeout = "2s"

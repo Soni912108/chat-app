@@ -152,6 +152,15 @@ app.use((err, req, res, next) => {
 
 app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
 
+app.get('/config.js', (req, res) => {
+  res.type('application/javascript').send(
+    `window.__APP_CONFIG__ = ${JSON.stringify({
+      enableSockets: !isVercel,
+      socketPath: '/socket.io'
+    })};`
+  );
+});
+
 // Connect to MongoDB
 connectToMongoDB().catch(error => {
   logger.error('db/mongo', error.message);
