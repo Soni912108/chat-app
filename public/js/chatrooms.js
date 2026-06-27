@@ -8,6 +8,7 @@ let oldestMessageCursor = null;
 let hasMoreMessages = false;
 let isLoadingOlderMessages = false;
 let messagesInitialized = false;
+const roomBackgroundThemes = new Set(["neutral", "dusk", "forest", "ocean", "slate", "sunset"]);
 
 let retryTimeout;
 let retryCount = 0;
@@ -157,6 +158,45 @@ function renderMessages(messages, { replace = false, prepend = false } = {}) {
     }
 }
 
+function getMessagesEmptyStateElement() {
+    const empty = document.createElement("li");
+    empty.className = "messages-empty-state";
+
+    const title = document.createElement("strong");
+    title.textContent = "No messages yet";
+
+    const text = document.createElement("p");
+    text.textContent = "Start the conversation by sending the first message.";
+
+    empty.appendChild(title);
+    empty.appendChild(text);
+    return empty;
+}
+
+function setMessagesEmptyState() {
+    const messagesContainer = document.getElementById("messages");
+    if (!messagesContainer) {
+        return;
+    }
+
+    messagesContainer.innerHTML = "";
+    messagesContainer.appendChild(getMessagesEmptyStateElement());
+}
+
+function applyRoomBackgroundTheme(theme) {
+    const validTheme = roomBackgroundThemes.has(theme) ? theme : "neutral";
+    const messagesContainer = document.getElementById("messages-container");
+    const roomPanel = document.getElementById("chat-room");
+
+    if (messagesContainer) {
+        messagesContainer.dataset.roomTheme = validTheme;
+    }
+
+    if (roomPanel) {
+        roomPanel.dataset.roomTheme = validTheme;
+    }
+}
+
 function fetchRoomDetails() {
 
     withGlobalLoading(async () => {
@@ -181,11 +221,24 @@ function fetchRoomDetails() {
                 document.getElementById("roomName").textContent = `Room - ${data.room.name}`;
                 document.getElementById("roomOwner").textContent = `Owner - ${data.room.roomOwner.username}`;
                 isRoomOwner = data.room.roomOwner._id === currentUserId;
+                applyRoomBackgroundTheme(data.room.backgroundTheme || "neutral");
                 const isOwner = isRoomOwner;
                 document.getElementById("deleteRoom").style.display = isOwner ? "" : "none";
                 document.getElementById("banUser").style.display = isOwner ? "" : "none";
                 document.getElementById("renameRoom").style.display = isOwner ? "" : "none";
                 document.getElementById("transferOwnership").style.display = isOwner ? "" : "none";
+                const backgroundSelect = document.getElementById("roomBackgroundTheme");
+                const backgroundSave = document.getElementById("saveRoomBackground");
+                const backgroundLabel = document.querySelector('label[for="roomBackgroundTheme"]');
+                if (backgroundSelect && backgroundSave) {
+                    backgroundSelect.value = data.room.backgroundTheme || "neutral";
+                    backgroundSelect.disabled = !isOwner;
+                    backgroundSave.style.display = isOwner ? "" : "none";
+                    backgroundSelect.style.display = isOwner ? "" : "none";
+                    if (backgroundLabel) {
+                        backgroundLabel.style.display = isOwner ? "" : "none";
+                    }
+                }
                 
                 const userList = document.getElementById("userList");
                 userList.innerHTML = "";
@@ -246,13 +299,7 @@ async function fetchMessages(before = null, mode = "replace") {
             }
             if (response.status === 404) {
                 if (mode === "replace") {
-                    const messagesContainer = document.getElementById("messages");
-                    if (messagesContainer) {
-                        messagesContainer.innerHTML = "";
-                        const emptyMessage = document.createElement("li");
-                        emptyMessage.textContent = "It's empty. Type something here...";
-                        messagesContainer.appendChild(emptyMessage);
-                    }
+                    setMessagesEmptyState();
                 }
                 return;
             }
@@ -270,9 +317,7 @@ async function fetchMessages(before = null, mode = "replace") {
             if (messagesContainer) {
                 messagesContainer.innerHTML = "";
                 if (!tuples.length) {
-                    const emptyMessage = document.createElement("li");
-                    emptyMessage.textContent = "It's empty. Type something here...";
-                    messagesContainer.appendChild(emptyMessage);
+                    setMessagesEmptyState();
                     messagesInitialized = true;
                     return;
                 }
@@ -415,7 +460,7 @@ socket.on("message", (messageData) => {
         return;
     }
 
-    if (messagesContainer.textContent === "It's empty. Type something here...") {
+    if (messagesContainer.querySelector(".messages-empty-state")) {
         messagesContainer.innerHTML = "";
     }
 
@@ -468,6 +513,16 @@ socket.on("roomRenamed", (payload) => {
     }
     fetchRoomDetails();
 });
+socket.on("roomBackgroundUpdated", (payload) => {
+    const theme = typeof payload === "object" && payload ? payload.room?.backgroundTheme : null;
+    if (typeof theme === "string") {
+        applyRoomBackgroundTheme(theme);
+        const backgroundSelect = document.getElementById("roomBackgroundTheme");
+        if (backgroundSelect) {
+            backgroundSelect.value = theme;
+        }
+    }
+});
 socket.on("reloadingPage", (users) => {
 
     const userList = document.getElementById("userList");
@@ -487,7 +542,7 @@ function sendMessage() {
     if (messageText) {
         const messagesContainer = document.getElementById("messages");
 
-        if (messagesContainer && messagesContainer.textContent === "It's empty. Type something here...") {
+        if (messagesContainer && messagesContainer.querySelector(".messages-empty-state")) {
             messagesContainer.textContent = "";
         }
         
@@ -815,4 +870,46 @@ document.getElementById("transferOwnership").onclick = async function() {
 
 document.getElementById("leaveRoom").onclick = async function() {
     await leaveRoom();
+};
+
+document.getElementById("saveRoomBackground").onclick = async function() {
+    const backgroundSelect = document.getElementById("roomBackgroundTheme");
+    if (!backgroundSelect || !roomId) {
+        return;
+    }
+
+    const theme = backgroundSelect.value;
+    if (!roomBackgroundThemes.has(theme)) {
+        displayError("Invalid room background");
+        return;
+    }
+
+    await withGlobalLoading(async () => {
+        try {
+            const response = await fetch(`/api/rooms/${roomId}/background`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                credentials: "include",
+                body: JSON.stringify({ theme })
+            });
+
+            if (response.status === 401) {
+                handleAuthExpired();
+                return;
+            }
+
+            const data = await response.json();
+
+            if (response.ok) {
+                applyRoomBackgroundTheme(data.room?.backgroundTheme || theme);
+                showToast(data.message || "Room background updated", "success");
+            } else {
+                displayError(data.message || "Failed to update room background");
+            }
+        } catch (error) {
+            displayError("Internal server error");
+        }
+    }, "Updating background...");
 };

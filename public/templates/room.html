@@ -37,6 +37,16 @@
       <details class="room-settings">
         <summary>Room Settings</summary>
         <div class="room-settings-actions">
+          <label for="roomBackgroundTheme" class="room-settings-label">Room background</label>
+          <select id="roomBackgroundTheme" class="room-background-select">
+            <option value="neutral">Neutral</option>
+            <option value="dusk">Dusk</option>
+            <option value="forest">Forest</option>
+            <option value="ocean">Ocean</option>
+            <option value="slate">Slate</option>
+            <option value="sunset">Sunset</option>
+          </select>
+          <button id="saveRoomBackground" class="nav-button">Save background</button>
           <button onclick="banUser()" id="banUser" class="nav-button danger-button">Ban user</button>
           <button onclick="leaveRoom()" id="leaveRoom" class="nav-button">Leave room</button>
           <button onclick="deleteRoom()" id="deleteRoom" class="nav-button danger-button">Delete room</button>

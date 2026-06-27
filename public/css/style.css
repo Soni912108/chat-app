@@ -605,6 +605,14 @@ ul {
   padding: 0 12px 12px;
 }
 
+.room-settings-label {
+  margin: 0 12px 6px;
+}
+
+.room-background-select {
+  margin: 0 12px 0;
+}
+
 .room-settings-actions button {
   width: 100%;
 }
@@ -671,12 +679,86 @@ ul {
   background:
     linear-gradient(rgba(255,255,255,0.88), rgba(255,255,255,0.88)),
     repeating-linear-gradient(45deg, transparent 0 12px, rgba(31,111,99,0.04) 12px 24px);
+  transition: background 180ms ease;
+}
+
+.chat-room[data-room-theme="dusk"] .messages-container {
+  background:
+    linear-gradient(rgba(28, 24, 36, 0.84), rgba(28, 24, 36, 0.84)),
+    linear-gradient(135deg, rgba(98, 62, 137, 0.30), rgba(194, 91, 67, 0.22));
+}
+
+.chat-room[data-room-theme="forest"] .messages-container {
+  background:
+    linear-gradient(rgba(18, 32, 27, 0.82), rgba(18, 32, 27, 0.82)),
+    linear-gradient(135deg, rgba(39, 104, 77, 0.30), rgba(99, 141, 70, 0.22));
+}
+
+.chat-room[data-room-theme="ocean"] .messages-container {
+  background:
+    linear-gradient(rgba(17, 31, 42, 0.82), rgba(17, 31, 42, 0.82)),
+    linear-gradient(135deg, rgba(47, 108, 169, 0.30), rgba(44, 165, 180, 0.22));
+}
+
+.chat-room[data-room-theme="slate"] .messages-container {
+  background:
+    linear-gradient(rgba(31, 37, 44, 0.82), rgba(31, 37, 44, 0.82)),
+    linear-gradient(135deg, rgba(93, 108, 122, 0.24), rgba(55, 64, 74, 0.22));
+}
+
+.chat-room[data-room-theme="sunset"] .messages-container {
+  background:
+    linear-gradient(rgba(53, 26, 22, 0.82), rgba(53, 26, 22, 0.82)),
+    linear-gradient(135deg, rgba(209, 97, 54, 0.28), rgba(243, 175, 84, 0.20));
+}
+
+.chat-room[data-room-theme="neutral"] .messages-container {
+  background:
+    linear-gradient(rgba(255,255,255,0.88), rgba(255,255,255,0.88)),
+    repeating-linear-gradient(45deg, transparent 0 12px, rgba(31,111,99,0.04) 12px 24px);
 }
 
 .messages {
   display: grid;
   gap: 12px;
   list-style: none;
+}
+
+.messages-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 260px;
+  margin: 18px auto;
+  padding: 28px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 76%, transparent);
+  color: var(--muted);
+  text-align: center;
+}
+
+.messages-empty-state strong {
+  color: var(--text);
+  font-size: 18px;
+}
+
+.chat-room[data-room-theme="dusk"] .messages-empty-state,
+.chat-room[data-room-theme="forest"] .messages-empty-state,
+.chat-room[data-room-theme="ocean"] .messages-empty-state,
+.chat-room[data-room-theme="slate"] .messages-empty-state,
+.chat-room[data-room-theme="sunset"] .messages-empty-state {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255,255,255,0.82);
+  border-color: rgba(255,255,255,0.18);
+}
+
+.chat-room[data-room-theme="dusk"] .messages-empty-state strong,
+.chat-room[data-room-theme="forest"] .messages-empty-state strong,
+.chat-room[data-room-theme="ocean"] .messages-empty-state strong,
+.chat-room[data-room-theme="slate"] .messages-empty-state strong,
+.chat-room[data-room-theme="sunset"] .messages-empty-state strong {
+  color: #fff;
 }
 
 .message {
@@ -705,6 +787,38 @@ ul {
   background: var(--surface);
   box-shadow: 0 6px 18px rgba(34,39,43,0.07);
   overflow-wrap: anywhere;
+}
+
+.chat-room[data-room-theme="dusk"] .message-content,
+.chat-room[data-room-theme="forest"] .message-content,
+.chat-room[data-room-theme="ocean"] .message-content,
+.chat-room[data-room-theme="slate"] .message-content,
+.chat-room[data-room-theme="sunset"] .message-content {
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  border-color: rgba(255,255,255,0.16);
+  box-shadow: 0 8px 22px rgba(0,0,0,0.14);
+}
+
+.chat-room[data-room-theme="dusk"] .message-content .username,
+.chat-room[data-room-theme="forest"] .message-content .username,
+.chat-room[data-room-theme="ocean"] .message-content .username,
+.chat-room[data-room-theme="slate"] .message-content .username,
+.chat-room[data-room-theme="sunset"] .message-content .username {
+  color: #fff;
+}
+
+.chat-room[data-room-theme="dusk"] .timestamp,
+.chat-room[data-room-theme="forest"] .timestamp,
+.chat-room[data-room-theme="ocean"] .timestamp,
+.chat-room[data-room-theme="slate"] .timestamp,
+.chat-room[data-room-theme="sunset"] .timestamp,
+.chat-room[data-room-theme="dusk"] .typing-indicator,
+.chat-room[data-room-theme="forest"] .typing-indicator,
+.chat-room[data-room-theme="ocean"] .typing-indicator,
+.chat-room[data-room-theme="slate"] .typing-indicator,
+.chat-room[data-room-theme="sunset"] .typing-indicator {
+  color: rgba(255,255,255,0.72);
 }
 
 .message-content .username {

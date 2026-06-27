@@ -11,6 +11,8 @@ const { getRoomAccess, objectIdListIncludes } = require('../utils/roomAccess');
 
 const notifyUsers = require('../utils/notificationFunction');
 
+const ROOM_BACKGROUNDS = new Set(['neutral', 'dusk', 'forest', 'ocean', 'slate', 'sunset']);
+
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -256,6 +258,45 @@ router.patch('/:roomId/rename', auth, async (req, res) => {
     });
   } catch (error) {
     logger.error('routes/rooms:rename', error.message);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// Update the room background theme
+router.patch('/:roomId/background', auth, async (req, res) => {
+  const { roomId } = req.params;
+  const theme = typeof req.body.theme === 'string' ? req.body.theme.trim() : '';
+
+  if (!ROOM_BACKGROUNDS.has(theme)) {
+    return res.status(400).json({ message: 'Invalid room background theme' });
+  }
+
+  try {
+    const room = await Room.findById(roomId).populate('roomOwner', 'username');
+    if (!room) {
+      return res.status(404).json({ message: 'Room not found' });
+    }
+
+    const isOwner = req.user.id.toString() === room.roomOwner._id.toString();
+    if (!isOwner) {
+      return res.status(403).json({ message: 'You are not the owner of this room.' });
+    }
+
+    room.backgroundTheme = theme;
+    await room.save();
+
+    const io = getIo();
+    io.to(roomId.toString()).emit('roomBackgroundUpdated', {
+      message: 'Room background updated successfully.',
+      room: { _id: room._id, backgroundTheme: theme }
+    });
+
+    res.status(200).json({
+      message: 'Room background updated successfully',
+      room: { _id: room._id, backgroundTheme: theme }
+    });
+  } catch (error) {
+    logger.error('routes/rooms:background', error.message);
     res.status(500).json({ message: 'Internal server error' });
   }
 });
