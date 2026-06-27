@@ -1,0 +1,6 @@
+.env
+/node_modules
+testMongoConn.js
+testCloudinaryConn.js
+
+uploads/*
