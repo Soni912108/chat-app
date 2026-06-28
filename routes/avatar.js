@@ -43,7 +43,7 @@ async function handleAvatarUpload(req, res) {
     try {
         const uploadStream = cloudinary.uploader.upload_stream(
             {
-                folder: 'chat-app/avatars',
+                folder: 'roomloop/avatars',
                 public_id: `avatar_${req.user.id}`,
                 overwrite: true,
                 resource_type: 'auto',

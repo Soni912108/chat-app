@@ -1,4 +1,4 @@
-# Chat App - Project Architecture & Development Guide
+# Roomloop - Project Architecture & Development Guide
 
 ## Overview
 A real-time chat application built with Node.js, Express.js, Socket.io, MongoDB (Mongoose), and JWT authentication. Users can create/join chat rooms, send messages in real-time, manage notifications, and update profiles.
@@ -37,7 +37,7 @@ Fly.io was used as the cloud provider for deployment during the project. The rep
 ## Project Structure
 
 ```
-chat-app/
+roomloop/
 ├── server.js                 # Main Express server entry point
 ├── socket.js                 # Socket.io event handlers
 ├── testConn.js              # Database connection testing utility

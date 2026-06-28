@@ -1,4 +1,4 @@
-# Chat App
+# Roomloop
 
 A Node.js and Express chat application with MongoDB, Socket.io, JWT authentication, Cloudinary avatars, and browser-rendered room management.
 

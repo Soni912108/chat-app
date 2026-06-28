@@ -1,5 +1,5 @@
-IMAGE_NAME ?= chat-app
-CONTAINER_NAME ?= chat-app-dev
+IMAGE_NAME ?= roomloop
+CONTAINER_NAME ?= roomloop-dev
 PORT ?= 3001
 
 .PHONY: help docker-build docker-run docker-dev docker-stop test

@@ -30,7 +30,7 @@ test('landing page loads', async () => {
   try {
     const { response, text } = await fetchText(baseUrl, '/');
     assert.equal(response.status, 200);
-    assert.match(text, /Chat App/i);
+    assert.match(text, /Roomloop/i);
   } finally {
     await new Promise(resolve => server.close(resolve));
   }
