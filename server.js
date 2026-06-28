@@ -129,7 +129,7 @@ app.use((err, req, res, next) => {
   }
 });
 
-// Connect to MongoDB
+// Connect to MongoDB(Atlas) if not in test environment
 if (!isTest) {
   connectToMongoDB().catch(error => {
     logger.error('db/mongo', error.message);
