@@ -84,6 +84,5 @@ async function handleAvatarUpload(req, res) {
 }
 
 router.post('/avatar', auth, upload.single('avatar'), handleAvatarUpload);
-router.post('/uploadAvatar', auth, upload.single('avatar'), handleAvatarUpload);
 
 module.exports = router;
