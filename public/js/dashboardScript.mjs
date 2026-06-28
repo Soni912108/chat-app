@@ -115,6 +115,7 @@ function loadRooms() {
 
             data.rooms.forEach(room => {
                 const li = document.createElement("li");
+                li.className = "room-card";
                 const roomType = room.isPrivate ? "Private room" : "Public room";
                 const isPending = Boolean(room.hasPendingRequest);
                 const isOpen = Boolean(room.isMember);
@@ -371,6 +372,7 @@ function handleJoinResponse(a, b) {
             displayError("You are banned from this room");
             break;
         case "Request sent to join private room":
+        case "Request to join private room sent to the room owner":
         case "Join request already sent to the room owner":
             showToast("Join request sent to room owner", "success");
             loadRooms();
@@ -389,6 +391,13 @@ function handleJoinResponse(a, b) {
 
 function displayError(a) {
     showToast(a, "error");
+}
+
+function clearDashboardBanner() {
+    const connectionError = document.getElementById("connection-error");
+    if (connectionError) {
+        connectionError.textContent = "";
+    }
 }
 
 function checkRedirectMessages() {
@@ -413,6 +422,9 @@ function checkRedirectMessages() {
             case 'loggedOut':
                 errorMessage = 'You have been logged out. Please log in again.';
                 break;
+            case 'leftRoom':
+                errorMessage = 'You left the room successfully.';
+                break;
             case 'error':
                 errorMessage = 'An error occurred while accessing the room. Please try again.';
                 break;
@@ -436,6 +448,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     return; // Redirect will happen in checkAuthentication
   }
   
+  clearDashboardBanner();
   loadRooms();
   checkRedirectMessages();
   initializeSocket(); // Initialize socket connection

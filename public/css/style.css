@@ -462,9 +462,8 @@ ul {
 }
 
 #rooms li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 144px;
   gap: 12px;
   min-height: 56px;
   padding: 12px 14px;
@@ -484,6 +483,10 @@ ul {
   min-width: 0;
 }
 
+.room-card {
+  align-items: center;
+}
+
 .room-card-name {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -497,13 +500,15 @@ ul {
 }
 
 .room-card-status {
-  flex: 0 0 auto;
+  justify-self: center;
+  align-self: center;
   padding: 4px 9px;
   border-radius: 999px;
   background: rgba(31,111,99,0.12);
   color: var(--primary-dark);
   font-size: 12px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .room-card-status.banned {
@@ -517,13 +522,14 @@ ul {
 }
 
 .room-card-actions {
-  flex: 0 0 auto;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
 }
 
 .room-card-actions .nav-button {
   min-width: 132px;
+  white-space: nowrap;
 }
 
 .create-room button {
@@ -559,6 +565,26 @@ ul {
 
 .dashboard-error.success {
   background: rgba(31,111,99,0.12);
+  color: var(--primary-dark);
+}
+
+.dashboard-error:empty,
+.connection-error:empty {
+  display: none;
+}
+
+.status-bar {
+  background: rgba(31,111,99,0.10);
+  color: var(--primary-dark);
+}
+
+.status-bar.is-error {
+  background: var(--accent-soft);
+  color: var(--danger);
+}
+
+.status-bar.is-success {
+  background: rgba(31,111,99,0.10);
   color: var(--primary-dark);
 }
 
@@ -933,17 +959,159 @@ ul {
 
 #notifications-list li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
+}
+
+#notifications-list li.notification-item {
+  align-items: center;
+}
+
+.notification-content {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.notification-message {
+  overflow-wrap: anywhere;
+}
+
+.notification-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  width: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.overflow-button {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+  font-size: 20px;
+}
+
+.accept-button {
+  background: rgba(31,111,99,0.12);
+  color: var(--primary-dark);
+  border-color: rgba(31,111,99,0.20);
+}
+
+.notification-action-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.notification-primary-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.primary-action-button {
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--line);
+  white-space: nowrap;
+}
+
+.danger-icon-button {
+  background: var(--accent-soft);
+  color: var(--danger);
+}
+
+.state-button.read,
+.notification-read-state {
+  min-height: 32px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius);
+  background: rgba(31,111,99,0.10);
+  color: var(--primary-dark);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.notification-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.notification-status-badge.read {
+  background: rgba(31,111,99,0.12);
+  color: var(--primary-dark);
+}
+
+.notification-status-badge.unread {
+  background: rgba(168,100,18,0.14);
+  color: var(--warning);
+}
+
+.notification-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 8;
+  display: none;
+  min-width: 156px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.notification-menu.is-open {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-item {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: left;
+}
+
+.danger-menu-item {
+  background: var(--accent-soft);
+  color: var(--danger);
 }
 
 #notifications-list button {
   min-height: 34px;
   padding: 0 12px;
-  background: var(--surface);
-  color: var(--text);
-  border-color: var(--line);
 }
 
 .update-container {
@@ -1223,5 +1391,24 @@ input[type="file"] {
 
   #notifications-list li {
     grid-template-columns: 1fr;
+  }
+
+  .notification-action-wrap {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .notification-menu {
+    right: auto;
+    left: 0;
+  }
+
+  #rooms li {
+    grid-template-columns: 1fr;
+  }
+
+  .room-card-status,
+  .room-card-actions {
+    justify-self: start;
   }
 }
