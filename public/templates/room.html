@@ -110,10 +110,6 @@
       window.location.href = '/profile';
     }
 
-    function updateUserProfile() {
-      window.location.href = '/updateUser';
-    }
-
     async function logout() {
       try {
         await fetch('/api/auth/logout', {

@@ -24,7 +24,7 @@ A real-time chat application built with Node.js, Express.js, Socket.io, MongoDB 
 
 ## Local Development
 
-- `npm run dev` starts the app with Nodemon on the host machine.
+- `npm run dev` starts the app with Node watch mode on the host machine.
 - `make docker-dev` builds and runs the Docker development image with watch mode.
 - `make docker-run` runs the production-style Docker image.
 
@@ -68,8 +68,7 @@ roomloop/
 │   │   ├── notificationCount.js
 │   │   ├── notifications.js
 │   │   ├── profile.js
-│   │   ├── updateUser.js
-│   └── templates/           # HTML templates
+│   │   ├── │   └── templates/           # HTML templates
 ├── utils/
 │   └── notificationFunction.js  # Notification utilities
 ├── docs/                        # Documentation
@@ -346,7 +345,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 ### Start Development Server
 ```bash
 npm install
-npm run dev  # Uses nodemon for auto-reload
+npm run dev  # Uses Node watch mode for auto-reload
 ```
 
 ### Start Production Server
@@ -471,3 +470,5 @@ curl -X GET http://localhost:5000/dashboard \
 **Last Updated:** 2026-06-06  
 **Version:** 1.0  
 **Maintained By:** Development Team
+
+

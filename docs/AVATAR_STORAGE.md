@@ -35,7 +35,7 @@ npm run dev
 ```
 
 ### 4. Test upload
-- Open `/updateUser`
+- Open `/profile`
 - Upload an image
 - Confirm the avatar appears on the profile page
 
@@ -71,4 +71,3 @@ The upload flow should behave the same as in local development.
 - `Invalid format` - use JPEG, PNG, or WebP
 - `Avatar not showing` - check the stored URL in MongoDB
 - `Cloudinary errors` - verify the API credentials
-

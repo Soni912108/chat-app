@@ -30,7 +30,7 @@ Install dependencies:
 npm install
 ```
 
-Run the app with Nodemon:
+Run the app with Node watch mode:
 
 ```bash
 npm run dev

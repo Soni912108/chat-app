@@ -1,7 +1,8 @@
 IMAGE_NAME ?= roomloop
-CONTAINER_NAME ?= roomloop-dev
-PORT ?= 3001
-
+DEV_CONTAINER_NAME ?= roomloop-dev
+PROD_CONTAINER_NAME ?= roomloop-prod
+HOST_PORT ?= 3001
+HOST_PORT_DEV ?= 3002
 .PHONY: help docker-build docker-run docker-dev docker-stop test
 
 help:
@@ -16,14 +17,15 @@ docker-build:
 	docker build -t $(IMAGE_NAME):latest .
 
 docker-run:
-	docker run --rm -p $(PORT):3001 --env-file .env $(IMAGE_NAME):latest
+	docker run --rm --name $(PROD_CONTAINER_NAME) -p $(HOST_PORT):3001 --env-file .env -e PORT=3001 $(IMAGE_NAME):latest
 
 docker-dev:
 	docker build --target dev -t $(IMAGE_NAME):dev .
-	docker run --rm -it --name $(CONTAINER_NAME) -p $(PORT):3001 --env-file .env -v "$(CURDIR):/app" -v $(IMAGE_NAME)-node_modules:/app/node_modules $(IMAGE_NAME):dev
+	docker run --rm -it --name $(DEV_CONTAINER_NAME) -p $(HOST_PORT_DEV):3001 --env-file .env -e PORT=3001 -v "$(CURDIR):/app" -v $(IMAGE_NAME)-node_modules:/app/node_modules $(IMAGE_NAME):dev
 
 docker-stop:
-	docker stop $(CONTAINER_NAME)
+	-docker stop $(DEV_CONTAINER_NAME)
+	-docker stop $(PROD_CONTAINER_NAME)
 
 test:
 	npm test

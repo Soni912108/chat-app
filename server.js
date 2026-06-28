@@ -14,7 +14,7 @@ const settingsRoutes = require('./routes/settings');
 const notificationRoutes = require('./routes/notifications');
 const { setupSocketHandlers } = require('./socket');
 const logger = require('./utils/logger');
-const cors = require('cors'); // Import CORS middleware
+const cors = require('cors');
 const requireRoomPageAccess = require('./utils/requireRoomPageAccess');
 
 const PORT = process.env.PORT || 3001;
@@ -27,9 +27,22 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
+const allowedOrigins = new Set([
+  `http://localhost:${PORT}`,
+  `http://127.0.0.1:${PORT}`,
+  `https://roomloop.fly.dev`
+]);
+
 app.use(cors({
-  methods: ['GET', 'POST','PUT','DELETE','PATCH'], // Specify allowed HTTP methods
-  allowedHeaders: ['Content-Type', 'Authorization'] // Specify allowed headers
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use(express.json());
@@ -87,11 +100,6 @@ app.get('/notification', requirePageAccess, (req, res) => {
 });
 
 
-// Route to render updateUserProfile page
-app.get('/updateUser', requirePageAccess, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'templates', 'updateUser.html'));
-});
-
 // Landing page route
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'templates', 'landing.html'));
@@ -133,9 +141,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/uploads', avatarRoutes); // Use upload routes
-app.use('/api/fileUpload', avatarRoutes); // Legacy alias for avatar routes
 app.use('/api/users', settingsRoutes); // Use settings routes
-app.use('/api/user', settingsRoutes); // Legacy alias for settings routes
 app.use('/api/notifications', notificationRoutes);
 
 if (!isTest) {

@@ -88,11 +88,3 @@ async function logout() {
 function goBack() {
     window.location.href = "/dashboard";
 }
-
-function updateUserProfile() {
-    window.location.href = "/updateUser";
-}
-
-function goBackToProfile() {
-    window.location.href = "/profile";
-}
