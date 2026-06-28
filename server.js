@@ -20,7 +20,6 @@ const requireRoomPageAccess = require('./utils/requireRoomPageAccess');
 const PORT = process.env.PORT || 3001;
 const isTest = process.env.NODE_ENV === 'test';
 const publicDir = path.join(__dirname, 'public');
-const uploadsDir = path.join(__dirname, 'uploads');
 const faviconPath = path.join(publicDir, 'images', 'favicon.svg');
 
 // Create app
@@ -36,7 +35,6 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(publicDir)); // Serve /css, /js, /images directly
 app.use('/public', express.static(publicDir)); // Backward-compatible /public/* assets
-app.use('/uploads', express.static(uploadsDir)); // Serve uploads directory
 
 app.get(['/favicon.ico', '/favicon.svg'], (req, res) => {
   res.type('image/svg+xml').sendFile(faviconPath);

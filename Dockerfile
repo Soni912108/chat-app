@@ -9,12 +9,8 @@ LABEL fly_launch_runtime="Node.js"
 # Node.js app lives here
 WORKDIR /app
 
-# Set production environment
-ENV NODE_ENV="production"
-
-
-# Throw-away build stage to reduce size of final image
-FROM base AS build
+# Install dependencies once and reuse them across dev/prod stages
+FROM base AS deps
 
 # Install packages needed to build node modules
 RUN apt-get update -qq && \
@@ -24,15 +20,20 @@ RUN apt-get update -qq && \
 COPY package-lock.json package.json ./
 RUN npm ci
 
-# Copy application code
+# Development image
+FROM deps AS dev
+ENV NODE_ENV="development"
 COPY . .
+EXPOSE 3001
+CMD [ "npm", "run", "dev:docker" ]
 
 
 # Final stage for app image
-FROM base
+FROM deps AS prod
+ENV NODE_ENV="production"
 
 # Copy built application
-COPY --from=build /app /app
+COPY . .
 
 # Start the server by default, this can be overwritten at runtime
 EXPOSE 3001

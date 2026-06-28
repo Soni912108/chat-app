@@ -22,6 +22,18 @@ A real-time chat application built with Node.js, Express.js, Socket.io, MongoDB 
 
 ---
 
+## Local Development
+
+- `npm run dev` starts the app with Nodemon on the host machine.
+- `make docker-dev` builds and runs the Docker development image with watch mode.
+- `make docker-run` runs the production-style Docker image.
+
+## Deployment
+
+Fly.io was used as the cloud provider for deployment during the project. The repository keeps `fly.toml` and Docker-based deployment settings so the app can be reproduced or redeployed without rewriting the app.
+
+---
+
 ## Project Structure
 
 ```

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "dev:docker": "node --watch server.js",
     "seed": "node scripts/seed.js",
     "test": "node --test tests/app-routes.test.js"
   },

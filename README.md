@@ -1,122 +1,85 @@
 # Chat App
 
-This is a Chat Application platform, built using Node.js, Express.js, MongoDB, Socket.io, JavaScript, HTML, and CSS. It is a full-stack app that provides options to chat in private/public rooms created by users, the ability to customize your profile, upload profile photos, and more.
-
-Check out the live demo of the application [here](https://chatapp2.azurewebsites.net/).
-
-## Table of Contents
-
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Environment Variables](#environment-variables)
-- [Usage](#usage)
-- [Deployment](#deployment)
-- [Contributing](#contributing)
-- [License](#license)
-- [Live Demo](#live-demo)
+A Node.js and Express chat application with MongoDB, Socket.io, JWT authentication, Cloudinary avatars, and browser-rendered room management.
 
 ## Features
 
-- **User Authentication**
-  - Register and login functionality using JWT for secure authentication.
-  
-- **Chat Rooms**
-  - Create public and private chat rooms.
-  - Join existing chat rooms.
-  - Real-time messaging using WebSockets.
+- JWT-based login and registration
+- Public and private rooms
+- Real-time messaging with Socket.io
+- Room ownership, join requests, banning, leaving, renaming, and transfer
+- Notifications with read and delete flows
+- Profile editing, password change, avatar upload, and theme settings
+- Search and tabbed room browsing on the dashboard
 
-- **User Profiles**
-  - Customize your profile with a username, bio, and profile photo.
-  - Upload and change profile pictures.
+## Tech Stack
 
-- **Messaging**
-  - Send and receive messages in real-time.
-  - Support for text and emojis.
-  - Message history and retrieval.
+- Node.js
+- Express.js
+- MongoDB and Mongoose
+- Socket.io
+- JWT
+- Cloudinary
+- HTML, CSS, and vanilla JavaScript
 
-- **Notifications**
-  - Real-time notifications for new messages.
-  - Alerts for mentions and direct messages.
+## Local Development
 
-- **Search**
-  - Search for users and chat rooms.
-  - Filter messages within a chat room.
+Install dependencies:
 
-- **Security**
-  - Secure password storage with bcrypt.
-  - Data validation and sanitization.
+```bash
+npm install
+```
 
-## Prerequisites
+Run the app with Nodemon:
 
-Before you begin, ensure you have met the following requirements:
+```bash
+npm run dev
+```
 
-- Node.js and npm installed on your machine
-- A MongoDB database (local or Atlas)
+Run the Docker-based development image:
 
-## Installation
+```bash
+make docker-dev
+```
 
-1. Clone the repository:
+Run tests:
 
-   ```bash
-   https://github.com/Soni912108/chat-app.git
-   cd chat-app
+```bash
+npm test
+```
 
-2.Install the dependencies:
-    
-     npm install
+## Docker
 
-## Environment Variables
+The repository includes a multi-stage `Dockerfile` that supports both production-style builds and local containerized development.
 
-1.Create a .env file in the root directory of your project and add the following variables:
+Useful targets:
 
-    PASSWORD=your_mongodb_password
-    JWT_SECRET=your_jwt_secret
-    PORT=your_local_port_number
-
-Replace your_mongodb_uri, your_jwt_secret, and your_port_number with your actual MongoDB URI, JWT secret, and desired port number.
-
-
-## Usage
-To start the development server using nodemon, run:
-
-    npm run dev
-
-The app will be running on http://localhost:3000. (or the port you pass)
-
-
+```bash
+make docker-build
+make docker-run
+make docker-dev
+```
 
 ## Deployment
 
-The app is deployed using Azure. To deploy your own instance, follow these steps:
+`fly.toml` remains in the repository because Fly.io was used as the cloud provider for deployment during the project.
 
-1. Go to the [Azure Portal](https://portal.azure.com/).
-2. Create a new Web App resource.
-3. In the deployment section, choose GitHub as the deployment source.
-4. Link your GitHub account and select the repository and branch you want to deploy.
-5. Configure the build settings if needed.
-6. Set up your environment variables in the "Configuration" section of your Web App settings.
-7. Click on "Save" and then "Deploy".
+The repo is still runnable locally without Fly.io. For deployment-related notes, see:
 
+- [docs/DEPLOYMENT_AND_LOCAL_DEV.md](docs/DEPLOYMENT_AND_LOCAL_DEV.md)
+- [docs/PROJECT_ARCHITECTURE.md](docs/PROJECT_ARCHITECTURE.md)
+- [docs/SOCKET_ROOMS.md](docs/SOCKET_ROOMS.md)
+- [docs/AVATAR_STORAGE.md](docs/AVATAR_STORAGE.md)
 
+## Project Structure
 
-## Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1.Fork the repository.
-2.Create a new branch (git checkout -b feature-branch).
-3.Make your changes.
-4.Commit your changes (git commit -m 'Add some feature').
-5.Push to the branch (git push origin feature-branch).
-6.Open a pull request.
-
+- `server.js` - Express app and page routes
+- `routes/` - API routes
+- `models/` - MongoDB models
+- `public/` - frontend templates, styles, and scripts
+- `docs/` - project notes and architecture docs
+- `utils/` - shared helpers
 
 ## License
-This project is licensed under the MIT License. See the LICENSE file for more details.
 
-## Live Demo
-
-Check out the live demo of the application [here](https://chatapp2.azurewebsites.net/).
-
-
+MIT
