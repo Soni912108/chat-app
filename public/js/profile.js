@@ -70,14 +70,7 @@ function displayProfileInfo(a) {
             b.preventDefault(), joinRoom(a._id)
         }), b.appendChild(d), c.appendChild(b)
     });
-    document.getElementById("rooms-created-count").textContent = `Rooms Created: ${a.roomsCreatedCount}`, document.getElementById("rooms-joined-count").textContent = `Rooms Joined: ${a.roomsJoinedCount}`, document.getElementById("messages-sent-count").textContent = `Messages Sent: ${a.messagesSentCount}`;
-    const d = document.getElementById("recent-activity-list");
-    d.innerHTML = "", a.recentActivity.forEach(a => {
-        const b = document.createElement("li"),
-            c = new Date(a.timestamp),
-            e = c.toLocaleString();
-        b.textContent = `Message: ${a.content} at ${e}  (in ${a.roomName})`, d.appendChild(b)
-    })
+    document.getElementById("rooms-created-count").textContent = `Rooms Created: ${a.roomsCreatedCount}`, document.getElementById("rooms-joined-count").textContent = `Rooms Joined: ${a.roomsJoinedCount}`;
 }
 
 function joinRoom(a) {

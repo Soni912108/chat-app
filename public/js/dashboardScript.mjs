@@ -28,7 +28,38 @@ let socket;
 let roomsPage = 1;
 const roomsPageSize = 10;
 let roomsSearchTerm = "";
+let roomsScope = "mine";
 let roomsTotalPages = 1;
+
+function getRoomScopeLabel(scope) {
+    switch (scope) {
+        case "mine":
+            return "Your rooms";
+        case "pending":
+            return "Pending requests";
+        case "discover":
+            return "Discover rooms";
+        default:
+            return "Rooms";
+    }
+}
+
+function updateRoomTabs() {
+    const tabs = document.querySelectorAll(".room-tab");
+    tabs.forEach(tab => {
+        const isActive = tab.dataset.roomScope === roomsScope;
+        tab.classList.toggle("is-active", isActive);
+        tab.setAttribute("aria-selected", String(isActive));
+    });
+}
+
+function setRoomsScope(scope) {
+    roomsScope = scope;
+    roomsPage = 1;
+    updateRoomTabs();
+    loadRooms();
+}
+
 function initializeSocket() {
     socket = window.createAppSocket();
     
@@ -64,7 +95,8 @@ function loadRooms() {
 
     const params = new URLSearchParams({
         page: String(roomsPage),
-        limit: String(roomsPageSize)
+        limit: String(roomsPageSize),
+        scope: roomsScope
     });
     if (searchQuery) {
         params.set("search", searchQuery);
@@ -97,7 +129,7 @@ function loadRooms() {
             roomsTotalPages = data.totalPages || 1;
 
             if (pageInfo) {
-                pageInfo.textContent = `Page ${data.page || roomsPage} of ${roomsTotalPages}`;
+                pageInfo.textContent = `${getRoomScopeLabel(roomsScope)} - Page ${data.page || roomsPage} of ${roomsTotalPages}`;
             }
             if (prevButton) {
                 prevButton.disabled = (data.page || roomsPage) <= 1;
@@ -108,7 +140,13 @@ function loadRooms() {
 
             if (!data.rooms || !data.rooms.length) {
                 const li = document.createElement("li");
-                li.textContent = searchQuery ? "No matching rooms" : "No rooms available";
+                if (roomsScope === "pending") {
+                    li.textContent = searchQuery ? "No matching pending rooms" : "No pending requests";
+                } else if (roomsScope === "discover") {
+                    li.textContent = searchQuery ? "No matching rooms" : "No rooms to discover";
+                } else {
+                    li.textContent = searchQuery ? "No matching rooms" : "No rooms available";
+                }
                 roomsList.appendChild(li);
                 return;
             }
@@ -118,9 +156,12 @@ function loadRooms() {
                 li.className = "room-card";
                 const roomType = room.isPrivate ? "Private room" : "Public room";
                 const isPending = Boolean(room.hasPendingRequest);
-                const isOpen = Boolean(room.isMember);
+                const isOwner = Boolean(room.isOwner);
+                const isOpen = Boolean(room.isMember || isOwner);
                 const statusText = room.isBanned
                     ? "Banned"
+                    : isOwner
+                        ? "Owner"
                     : isOpen
                         ? "Joined"
                         : isPending
@@ -308,6 +349,11 @@ async function createRoom() {
 }
 
 document.getElementById("createRoomButton").addEventListener("click", createRoom);
+document.querySelectorAll(".room-tab").forEach(tab => {
+    tab.addEventListener("click", () => {
+        setRoomsScope(tab.dataset.roomScope || "mine");
+    });
+});
 document.getElementById("roomsPrevPage").addEventListener("click", () => {
     if (roomsPage > 1) {
         setRoomsPage(roomsPage - 1);
@@ -448,7 +494,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     return; // Redirect will happen in checkAuthentication
   }
   
+  const initialScope = new URLSearchParams(window.location.search).get("scope");
+  if (initialScope === "mine" || initialScope === "pending" || initialScope === "discover") {
+    roomsScope = initialScope;
+  }
+
   clearDashboardBanner();
+  updateRoomTabs();
   loadRooms();
   checkRedirectMessages();
   initializeSocket(); // Initialize socket connection

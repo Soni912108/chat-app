@@ -18,44 +18,61 @@
     <div class="app-nav-links">
       <button onclick="goBack()" class="nav-button">Dashboard</button>
       <button onclick="gotoNotification()" id="notification" class="nav-button">Notifications</button>
-      <button onclick="goToProfile()" id="profile" class="nav-button">Profile</button>
     </div>
     <div class="app-user-menu">
       <button class="user-menu-trigger" id="username"></button>
       <div class="user-menu-panel">
-        <button onclick="updateUserProfile()" class="nav-button">Update Profile</button>
+        <button onclick="goToProfile()" class="nav-button">Profile</button>
         <button class="logout-button" onclick="logout()" id="logout">Logout</button>
       </div>
     </div>
   </nav>
 
   <main id="chat-room" class="chat-room">
-    <section class="chat-sidebar">
-      <p class="eyebrow">Current room</p>
-      <h1 id="roomName" class="room-name"></h1>
-      <p id="roomOwner" class="room-owner"></p>
-      <details class="room-settings">
-        <summary>Room Settings</summary>
-        <div class="room-settings-actions">
-          <label for="roomBackgroundTheme" class="room-settings-label">Room background</label>
-          <select id="roomBackgroundTheme" class="room-background-select">
-            <option value="neutral">Neutral</option>
-            <option value="dusk">Dusk</option>
-            <option value="forest">Forest</option>
-            <option value="ocean">Ocean</option>
-            <option value="slate">Slate</option>
-            <option value="sunset">Sunset</option>
-          </select>
-          <button id="saveRoomBackground" class="nav-button">Save background</button>
-          <button onclick="banUser()" id="banUser" class="nav-button danger-button">Ban user</button>
-          <button onclick="leaveRoom()" id="leaveRoom" class="nav-button">Leave room</button>
-          <button onclick="deleteRoom()" id="deleteRoom" class="nav-button danger-button">Delete room</button>
-          <button onclick="renameRoom()" id="renameRoom" class="nav-button">Rename room</button>
-          <button onclick="transferOwnership()" id="transferOwnership" class="nav-button">Transfer owner</button>
-        </div>
-      </details>
-      <h2>Members</h2>
-      <ul id="userList" class="user-list">Fetching users...</ul>
+    <section class="room-toolbar">
+      <div class="room-toolbar-copy">
+        <p class="eyebrow">Current room</p>
+        <h1 id="roomName" class="room-name"></h1>
+        <p id="roomOwner" class="room-owner"></p>
+      </div>
+
+      <div class="room-toolbar-actions">
+        <details class="room-dropdown room-members-dropdown">
+          <summary>
+            <span>Members</span>
+            <span id="roomMemberCount" class="room-chip">0</span>
+          </summary>
+          <div class="room-dropdown-panel room-members-panel">
+            <ul id="userList" class="user-list room-member-list">Fetching users...</ul>
+          </div>
+        </details>
+
+        <button onclick="leaveRoom()" id="leaveRoom" class="nav-button">Leave room</button>
+
+        <details class="room-dropdown room-actions-dropdown" id="roomActionsMenu">
+          <summary>Room actions</summary>
+          <div class="room-dropdown-panel room-actions-panel">
+            <div class="room-settings-group">
+              <label for="roomBackgroundTheme" class="room-settings-label">Room background</label>
+              <select id="roomBackgroundTheme" class="room-background-select">
+                <option value="neutral">Neutral</option>
+                <option value="dusk">Dusk</option>
+                <option value="forest">Forest</option>
+                <option value="ocean">Ocean</option>
+                <option value="slate">Slate</option>
+                <option value="sunset">Sunset</option>
+              </select>
+              <button id="saveRoomBackground" class="nav-button">Save background</button>
+            </div>
+            <div class="room-settings-group">
+              <button onclick="renameRoom()" id="renameRoom" class="nav-button">Rename room</button>
+              <button onclick="transferOwnership()" id="transferOwnership" class="nav-button">Transfer owner</button>
+              <button onclick="banUser()" id="banUser" class="nav-button danger-button">Ban user</button>
+              <button onclick="deleteRoom()" id="deleteRoom" class="nav-button danger-button">Delete room</button>
+            </div>
+          </div>
+        </details>
+      </div>
     </section>
 
     <section class="chat-panel">

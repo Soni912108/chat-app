@@ -23,22 +23,54 @@ router.get('/', auth, async (req, res) => {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+    const scope = typeof req.query.scope === 'string' ? req.query.scope.trim() : 'all';
     const skip = (page - 1) * limit;
 
+    const userId = req.user.id;
     const filter = {};
     if (search) {
       filter.name = { $regex: escapeRegex(search), $options: 'i' };
     }
 
+    const scopedFilter = (() => {
+      if (scope === 'mine') {
+        return {
+          $or: [
+            { roomOwner: userId },
+            { users: userId }
+          ]
+        };
+      }
+
+      if (scope === 'pending') {
+        return { pendingRequests: userId };
+      }
+
+      if (scope === 'discover') {
+        return {
+          roomOwner: { $ne: userId },
+          users: { $ne: userId },
+          pendingRequests: { $ne: userId },
+          banned: { $ne: userId }
+        };
+      }
+
+      return {};
+    })();
+
+    const queryFilter = Object.keys(filter).length || Object.keys(scopedFilter).length
+      ? { $and: [filter, scopedFilter].filter(part => Object.keys(part).length) }
+      : {};
+
     const [rooms, totalRooms] = await Promise.all([
-      Room.find(filter)
+      Room.find(queryFilter)
         .populate('roomOwner', 'username')
         .select('name roomOwner users banned isPrivate pendingRequests createdAt updatedAt')
         .sort({ updatedAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Room.countDocuments(filter)
+      Room.countDocuments(queryFilter)
     ]);
 
     const safeRooms = rooms.map(room => ({
@@ -46,6 +78,7 @@ router.get('/', auth, async (req, res) => {
       name: room.name,
       roomOwner: room.roomOwner,
       isPrivate: room.isPrivate,
+      isOwner: room.roomOwner?._id?.toString() === userId.toString(),
       isMember: objectIdListIncludes(room.users, req.user.id),
       isBanned: objectIdListIncludes(room.banned, req.user.id),
       hasPendingRequest: objectIdListIncludes(room.pendingRequests || [], req.user.id),
@@ -59,7 +92,8 @@ router.get('/', auth, async (req, res) => {
       limit,
       totalRooms,
       totalPages: Math.max(Math.ceil(totalRooms / limit), 1),
-      search
+      search,
+      scope
     });
   } catch (error) {
     logger.error('routes/rooms:list', error.message);

@@ -10,6 +10,7 @@
   <script defer src="/public/js/uiFeedback.js"></script>
   <script defer src="/public/js/navbar.js"></script>
   <script defer src="/public/js/profile.js"></script>
+  <script defer src="/public/js/profileSettings.js"></script>
 </head>
 <body class="app-page">
   <nav class="profile-nav app-nav">
@@ -17,12 +18,11 @@
     <div class="app-nav-links">
       <button onclick="goBack()" class="nav-button">Dashboard</button>
       <button onclick="gotoNotification()" id="notification" class="nav-button">Notifications</button>
-      <button onclick="goToProfile()" id="profile" class="nav-button">Profile</button>
     </div>
     <div class="app-user-menu">
       <button class="user-menu-trigger" id="username"></button>
       <div class="user-menu-panel">
-        <button onclick="updateUserProfile()" class="nav-button">Update Profile</button>
+        <button onclick="goToProfile()" class="nav-button">Profile</button>
         <button class="logout-button" onclick="logout()" id="logout">Logout</button>
       </div>
     </div>
@@ -30,15 +30,22 @@
 
   <main class="profile-container">
     <section class="profile-hero">
-      <div class="profile-avatar">
-        <img src="" alt="Profile Avatar" id="profile-avatar">
+      <div class="profile-hero-header">
+        <h2 class="section-title profile-section-title">Profile</h2>
+        <button type="button" class="nav-button icon-button profile-edit-button" id="editProfileButton" aria-label="Edit profile" title="Edit profile">
+          <span aria-hidden="true">&#9998;</span>
+        </button>
       </div>
-      <div class="profile-details">
-        <p class="eyebrow">Profile</p>
-        <h1 id="profile-username" class="profile-username">Username</h1>
-        <p id="email" class="profile-email"></p>
-        <p id="joined-date" class="profile-joined-date"></p>
-        <p id="last-login" class="profile-last-login">Last login:</p>
+      <div class="profile-hero-body">
+        <div class="profile-avatar">
+          <img src="" alt="Profile Avatar" id="profile-avatar">
+        </div>
+        <div class="profile-details">
+          <h1 id="profile-username" class="profile-username">Username</h1>
+          <p id="email" class="profile-email"></p>
+          <p id="joined-date" class="profile-joined-date"></p>
+          <p id="last-login" class="profile-last-login">Last login:</p>
+        </div>
       </div>
     </section>
 
@@ -46,82 +53,26 @@
       <h2>Activity</h2>
       <p id="rooms-created-count">Rooms Created:</p>
       <p id="rooms-joined-count">Rooms Joined:</p>
-      <p id="messages-sent-count">Messages Sent:</p>
     </section>
 
-    <section class="profile-grid">
-      <div class="profile-section">
+    <section class="profile-section profile-rooms-section">
+      <div class="profile-section-header">
         <h2>Rooms created</h2>
-        <ul id="rooms-created" class="room-list"></ul>
+        <a class="nav-button profile-section-link" href="/dashboard?scope=mine">View all</a>
       </div>
-      <div class="profile-section recent-activity">
-        <h2>Recent activity</h2>
-        <ul id="recent-activity-list"></ul>
-      </div>
+      <ul id="rooms-created" class="room-list"></ul>
     </section>
 
     <section class="settings-preferences">
       <h2>Settings</h2>
-      <form id="settings-form">
-        <label for="theme">Theme</label>
-        <select name="theme" id="theme">
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-        <button type="submit" class="settings-button">Update Settings</button>
-      </form>
+      <p class="settings-description">Update your account, security, avatar, and theme from here.</p>
+      <div class="profile-settings-actions">
+        <button type="button" class="nav-button" id="changePasswordButton">Change Password</button>
+        <button type="button" class="nav-button" id="updateAvatarButton">Update Avatar</button>
+        <button type="button" class="nav-button" id="themeButton">Theme</button>
+      </div>
     </section>
   </main>
 
-  <script>
-    document.getElementById('settings-form').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const theme = document.getElementById('theme').value;
-
-      try {
-        const response = await fetch('/api/users/me/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ theme: theme }),
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            handleAuthExpired();
-            return;
-          }
-          const error = await response.json();
-          throw new Error(error.message);
-        }
-
-        const data = await response.json();
-        applyTheme(data.settings);
-        showToast('Settings updated', 'success');
-      } catch (error) {
-        showToast(error.message || 'Error updating settings', 'error');
-      }
-    });
-
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const response = await fetch('/api/users/me/settings', {
-          method: 'GET',
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          if (response.status === 401) {
-            handleAuthExpired();
-          }
-          return;
-        }
-        const data = await response.json();
-        if (data.settings && data.settings.theme) {
-          document.getElementById('theme').value = data.settings.theme;
-        }
-      } catch (error) {}
-    });
-  </script>
 </body>
 </html>

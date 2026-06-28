@@ -20,12 +20,11 @@
     <div class="app-nav-links">
       <button onclick="goBack()" class="nav-button">Dashboard</button>
       <button onclick="gotoNotification()" id="notification" class="nav-button">Notifications<span id="notification-count"></span></button>
-      <button onclick="goToProfile()" id="profile" class="nav-button">Profile</button>
     </div>
     <div class="app-user-menu">
       <button class="user-menu-trigger" id="username"></button>
       <div class="user-menu-panel">
-        <button onclick="updateUserProfile()" class="nav-button">Update Profile</button>
+        <button onclick="goToProfile()" class="nav-button">Profile</button>
         <button class="logout-button" onclick="logout()" id="logout">Logout</button>
       </div>
     </div>
@@ -44,6 +43,11 @@
         <div class="section-header">
           <h2>Available rooms</h2>
           <div class="lds-ellipsis" id="lds-ellipsis"><div></div><div></div><div></div><div></div></div>
+        </div>
+        <div class="room-tabs" role="tablist" aria-label="Room categories">
+          <button class="nav-button room-tab is-active" data-room-scope="mine" type="button">Mine</button>
+          <button class="nav-button room-tab" data-room-scope="pending" type="button">Pending</button>
+          <button class="nav-button room-tab" data-room-scope="discover" type="button">Discover</button>
         </div>
         <label for="roomSearchInput">Search rooms</label>
         <div class="search-row">

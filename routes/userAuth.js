@@ -5,7 +5,6 @@ const User = require('../models/Users');
 const router = express.Router();
 const Room = require('../models/Rooms');
 const auth = require('../middleware/auth');
-const Messages = require('../models/Messages');
 const logger = require('../utils/logger');
 
 require('dotenv').config();
@@ -140,33 +139,18 @@ async function getProfileInfo(req, res) {
     const joinedDate = user.createdAt;
     const username = user.username;
     const avatar = user.avatar;
-    // Get the rooms where the user is the owner
-    const roomsWhereAdmin = await Room.find({ roomOwner: userId }, { name: 1, _id: 1 });
+    // Get the most recent rooms where the user is the owner
+    const [roomsWhereAdmin, roomsCreatedCount] = await Promise.all([
+      Room.find({ roomOwner: userId }, { name: 1, _id: 1 })
+        .sort({ createdAt: -1 })
+        .limit(5),
+      Room.countDocuments({ roomOwner: userId })
+    ]);
     const roomDetails = roomsWhereAdmin.map(room => ({ name: room.name, _id: room._id }));
-
-    // Get the number of rooms created by the user
-    const roomsCreatedCount = roomsWhereAdmin.length;
 
     // Get the rooms the user has joined
     const roomsJoined = await Room.find({ users: userId }, { name: 1, _id: 1 });
     const roomsJoinedCount = roomsJoined.length;
-
-    // Get the number of messages sent by the user
-    const messagesSentCount = await Messages.countDocuments({ user: userId });
-
-    // Get recent activity (e.g., recent messages sent by the user)
-    const recentActivity = await Messages.find({ user: userId })
-      .sort({ timestamp: -1 })
-      .limit(10)
-      .populate('room', 'name')
-      .populate('user', 'username');
-
-    const recentActivityFormatted = recentActivity.map(message => ({
-      content: message.content,
-      timestamp: message.timestamp,
-      roomName: message.room.name,
-      username: message.user.username,
-    }));
 
     // Return the user's profile information as JSON response
     res.status(200).json({
@@ -178,8 +162,6 @@ async function getProfileInfo(req, res) {
       roomDetails,
       roomsCreatedCount,
       roomsJoinedCount,
-      messagesSentCount,
-      recentActivity: recentActivityFormatted,
     });
   } catch (error) {
     logger.error('routes/auth:profileInfo', error.message);

@@ -15,8 +15,7 @@ const notificationRoutes = require('./routes/notifications');
 const { setupSocketHandlers } = require('./socket');
 const logger = require('./utils/logger');
 const cors = require('cors'); // Import CORS middleware
-const Room = require('./models/Rooms');
-const { getRoomAccess } = require('./utils/roomAccess');
+const requireRoomPageAccess = require('./utils/requireRoomPageAccess');
 
 const PORT = process.env.PORT || 3001;
 const isTest = process.env.NODE_ENV === 'test';
@@ -70,36 +69,8 @@ app.get('/dashboard', requirePageAccess, (req, res) => {
     }
 });
 // Route to render the rooms templates
-app.get('/room', async (req, res) => {
+app.get('/room', requireRoomPageAccess, (req, res) => {
   try {
-    const roomId = typeof req.query.roomId === 'string' ? req.query.roomId.trim() : '';
-    if (!roomId) {
-      return res.status(404).sendFile(path.join(__dirname, 'public', 'templates', '404.html'));
-    }
-
-    const cookies = cookie.parse(req.headers.cookie || '');
-    const token = cookies.token;
-    if (!token) {
-      return res.redirect('/login?message=loggedOut');
-    }
-
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (error) {
-      return res.redirect('/login?message=loggedOut');
-    }
-
-    const room = await Room.findById(roomId);
-    if (!room) {
-      return res.status(404).sendFile(path.join(__dirname, 'public', 'templates', '404.html'));
-    }
-
-    const { isMember, isOwner, isBanned } = getRoomAccess(room, decoded.id);
-    if (isBanned || (!isMember && !isOwner)) {
-      return res.status(404).sendFile(path.join(__dirname, 'public', 'templates', '404.html'));
-    }
-
     return res.sendFile(path.join(__dirname, 'public', 'templates', 'room.html'));
   } catch (error) {
     logger.error('server/room', error.message);

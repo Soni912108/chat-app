@@ -136,6 +136,36 @@ function createMessageElement(message) {
     return messageElement;
 }
 
+function renderRoomMembers(users = []) {
+    const userList = document.getElementById("userList");
+    const memberCount = document.getElementById("roomMemberCount");
+
+    if (memberCount) {
+        const count = Array.isArray(users) ? users.length : 0;
+        memberCount.textContent = String(count);
+    }
+
+    if (!userList) {
+        return;
+    }
+
+    userList.innerHTML = "";
+
+    const members = Array.isArray(users) ? users : [];
+    if (!members.length) {
+        const emptyItem = document.createElement("li");
+        emptyItem.textContent = "No members found";
+        userList.appendChild(emptyItem);
+        return;
+    }
+
+    members.forEach(user => {
+        const listItem = document.createElement("li");
+        listItem.textContent = user.username;
+        userList.appendChild(listItem);
+    });
+}
+
 function renderMessages(messages, { replace = false, prepend = false } = {}) {
     const messagesContainer = getMessagesContainer();
     if (!messagesContainer) {
@@ -223,10 +253,14 @@ function fetchRoomDetails() {
                 isRoomOwner = data.room.roomOwner._id === currentUserId;
                 applyRoomBackgroundTheme(data.room.backgroundTheme || "neutral");
                 const isOwner = isRoomOwner;
+                const roomActionsMenu = document.getElementById("roomActionsMenu");
                 document.getElementById("deleteRoom").style.display = isOwner ? "" : "none";
                 document.getElementById("banUser").style.display = isOwner ? "" : "none";
                 document.getElementById("renameRoom").style.display = isOwner ? "" : "none";
                 document.getElementById("transferOwnership").style.display = isOwner ? "" : "none";
+                if (roomActionsMenu) {
+                    roomActionsMenu.style.display = isOwner ? "" : "none";
+                }
                 const backgroundSelect = document.getElementById("roomBackgroundTheme");
                 const backgroundSave = document.getElementById("saveRoomBackground");
                 const backgroundLabel = document.querySelector('label[for="roomBackgroundTheme"]');
@@ -239,15 +273,7 @@ function fetchRoomDetails() {
                         backgroundLabel.style.display = isOwner ? "" : "none";
                     }
                 }
-                
-                const userList = document.getElementById("userList");
-                userList.innerHTML = "";
-                
-                data.room.users.forEach(user => {
-                    const listItem = document.createElement("li");
-                    listItem.textContent = user.username;
-                    userList.appendChild(listItem);
-                });
+                renderRoomMembers(data.room.users);
             } else {
 
             }
@@ -473,15 +499,7 @@ socket.on("message", (messageData) => {
     scrollToBottom();
 });
 socket.on("updateUserList", (users) => {
-
-    const userList = document.getElementById("userList");
-    userList.innerHTML = "";
-    
-    users.forEach(user => {
-        const listItem = document.createElement("li");
-        listItem.textContent = user.username;
-        userList.appendChild(listItem);
-    });
+    renderRoomMembers(users);
 }), socket.on("error", (errorMessage) => {
 
     showToast(errorMessage, "error");
@@ -524,15 +542,7 @@ socket.on("roomBackgroundUpdated", (payload) => {
     }
 });
 socket.on("reloadingPage", (users) => {
-
-    const userList = document.getElementById("userList");
-    userList.innerHTML = "";
-    
-    users.forEach(user => {
-        const listItem = document.createElement("li");
-        listItem.textContent = user.username;
-        userList.appendChild(listItem);
-    });
+    renderRoomMembers(users);
 });
 
 function sendMessage() {
