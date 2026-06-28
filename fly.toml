@@ -1,4 +1,4 @@
-app = "chatapp-fly"
+app = "roomloop"
 primary_region = "ams"
 
 [build]
